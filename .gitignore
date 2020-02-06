@@ -1,0 +1,12 @@
+*/__pycache__
+*.pyc
+*/build
+*/dist
+*/*.egg-info
+**/*.swp
+.tox
+*.tar.gz
+**/.ycm_extra_conf.py
+**/global_extra_conf.py
+tests/rksclient
+root_token

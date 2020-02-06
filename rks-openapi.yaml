@@ -1,0 +1,568 @@
+---
+openapi: 3.0.0
+info:
+  title: Remote Key Server API
+  description: |
+    The _Remote Key Server_ is a solution to manage TLS private keys and certificates in a distributed system.
+
+    Distribution of sensitive material, especially private keys, requires to take care of the access, the storage, and the duration of the storage of this secrets on server nodes.
+
+    In the context of a Content Delivery Network, HTTPS traffic requires to handle multiple content providers certificates and private_keys and distribute them accross all the CDN nodes. This leads to difficult challenges over the secret managements and particularly security concerns with nodes storing every secret locally for an indefinite amount of time.
+
+    The RKS proposes a simple model to
+      * secure secret distribution by limiting secret access to registered nodes only
+      * limit secret storage duration on a node to a configurable time to live
+      * ease secret management by providing a single configuration endpoint via API
+      * add crisis management solution to cut access to the RKS to specific nodes or an entire CDN in case of emergency
+
+    The RKS is based on the Hashicorp Vault Open Source Software (https://github.com/hashicorp/vault) and provides an API on top of Vault's
+  version: 0.9.0
+tags:
+  - name: RKS Initialization
+    description: "RKS init API"
+  - name: RKS Administration
+    description: "RKS administration API"
+  - name: RKS Node Setup
+    description: "RKS Node registration API"
+  - name: RKS Secrets
+    description: "RKS secrets retrieval API"
+security:
+  - X-Vault-Token: []
+paths:
+  '/rks/v1/admin/login':
+    post:  
+      security: 
+        - {}
+      summary: Login into Admin API to get adminToken
+      tags:
+        - RKS Administration
+      operationId: loginAdmin
+      requestBody:
+        description: Admin credentials
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCredentials'
+      responses:
+        '200':
+          description: 'Ok'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminToken'
+        '400':
+          description: "Bad username or password"
+  '/rks/v1/init':
+    post: 
+      summary: Initialize Vault backend with proper policies and storage backend
+      tags:
+        - RKS Initialization
+      description: |
+        Authenticate with **root_token** retrieved through Vault init 
+      operationId: initRKS
+      responses:
+        '201':
+          description: "RKS initialized"
+        '403':
+          description: "Forbidden. Invalid X-Vault-Token"
+        '409':
+          description: "RKS already initialized"
+  '/rks/v1/group/{groupname}':
+    post:
+      summary: Create a Group of Nodes
+      description: |
+        Authenticate with **admin_token**
+      tags:
+        - RKS Administration
+      operationId: createGroup
+      parameters:
+        - $ref: '#/components/parameters/groupname'
+      requestBody:
+        description: Group registration information
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupRegInfo'
+      responses:
+        '201':
+          description: Group successfully registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupToken'
+        '403':
+          description: "Forbidden. Invalid X-Vault-Token"
+        '409':
+          description: Conflict Group already exists
+    delete:
+      summary: Delete a Group of Nodes
+      description: |
+        Authenticate with **admin_token**
+      tags:
+        - RKS Administration
+      operationId: deleteGroup
+      parameters:
+        - $ref: '#/components/parameters/groupname'
+      responses:
+        '204':
+          description: Group successfully deleted
+        '403':
+          description: "Forbidden. Invalid X-Vault-Token"
+        '404':
+          description: Groupname Not Found
+  '/rks/v1/group/{groupname}/grouptoken':
+    get:
+      summary: Get grouptoken for this **groupname**
+      description: |
+        Authenticate with **admin_token** retrieved through previous login
+        request
+      tags:
+        - RKS Administration
+      operationId: GetGroupToken
+      parameters:
+        - $ref: '#/components/parameters/groupname'
+      responses:
+        '200':
+          description: grouptoken successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupToken'
+        '403':
+          description: "Forbidden. Invalid X-Vault-Token"
+        '404':
+          description: Group not found
+    put:
+      summary: Update grouptoken for this **groupname**
+      description: |
+        Authenticate with **admin_token** retrieved through previous login
+        request
+      tags:
+        - RKS Administration
+      operationId: UpdateGroupToken
+      parameters:
+        - $ref: '#/components/parameters/groupname'
+      responses:
+        '200':
+          description: grouptoken successfully updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupToken'
+        '403':
+          description: "Forbidden. Invalid X-Vault-Token"
+        '404':
+          description: Group not found
+  '/rks/v1/group/{groupname}/config':
+    get:
+      summary: Get config for this **groupname**
+      description: |
+        Authenticate with **admin_token** retrieved through previous login
+        request
+      tags:
+        - RKS Administration
+      operationId: GetGroupConfig
+      parameters:
+        - $ref: '#/components/parameters/groupname'
+      responses:
+        '200':
+          description: config successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupRegInfo'
+        '403':
+          description: "Forbidden. Invalid X-Vault-Token"
+        '404':
+          description: Group not found
+  '/rks/v1/group/{groupname}/secrets':
+    get:
+      summary: Get secrets associated with **groupname**
+      description: |
+        Authenticate with **admin_token** retrieved through previous login
+        request
+      tags:
+        - RKS Administration
+      operationId: GetGroupSecrets
+      parameters:
+        - $ref: '#/components/parameters/groupname'
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  example: "test.com"
+        '403':
+          description: "Forbidden. Invalid X-Vault-Token"
+  '/rks/v1/group/{groupname}/secrets/{fqdn}':
+    post:
+      summary: Associate **fqdn** secret with **groupname**
+      description: |
+        Authenticate with **admin_token** retrieved through previous login
+        request
+      tags:
+        - RKS Administration
+      operationId: AssociateSecret
+      parameters:
+        - $ref: '#/components/parameters/groupname'
+        - $ref: '#/components/parameters/fqdn'
+      responses:
+        '201':
+          description: FQDN Associated
+        '403':
+          description: "Forbidden. Invalid X-Vault-Token"
+        '404':
+          description: Secret or groupName not Found
+    delete:
+      summary: Dissociate **fqdn** secret from **groupname**
+      description: |
+        Authenticate with **admin_token** retrieved through previous login
+        request
+      tags:
+        - RKS Administration
+      operationId: DissociateSecret
+      parameters:
+        - $ref: '#/components/parameters/groupname'
+        - $ref: '#/components/parameters/fqdn'
+      responses:
+        '204':
+          description: FQDN un-associated
+        '403':
+          description: "Forbidden. Invalid X-Vault-Token"
+        '404':
+          description: Secret or group not found
+  '/rks/v1/node':
+    post:
+      summary: Register a Node
+      description: |
+        The registrations returns a unique **nodeToken** usable to get secrets\
+        The **nodeToken** is bound to the **groupToken** used for authentication\
+        The **nodeToken** has a Time To Live, returned along the token\
+        This TTL represents the token lifetime after which it will expire and will not be usable anymore\
+        To continue using the **nodeToken** it has to be renewed regularly before its TTL expiration using /rks/v1/auth/token/renew-self endpoint\
+        If the token expires due to not beeing renewed, a new node registration using this endpoint is required\
+        **nodeId** is a Node identifier relevant to Group Manager used to verify node authenticity\
+        For example in case of use by a CDN Manager, nodeId is passed as a X-LCDN-nodeId header and is checked on the manager\
+        **groupToken** is used as X-Vault-Token for authentication\
+      tags:
+        - RKS Node Setup
+      operationId: registerNode
+      parameters:
+        - $ref: '#/components/parameters/nodeId'
+      responses:
+        '201':
+          description: Node successfully registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeToken'
+        '403':
+          description: "Forbidden. Invalid X-Vault-Token"
+  '/rks/v1/auth/token/renew-self':
+    post:
+      summary: Renew Token
+      description: |
+        This endpoint can be called to renew the passed X-Vault-Token\
+        **groupToken** or **nodeToken** expires if they are not renewed\
+        The request is forwarded to Vault **/auth/token/renew-self**\
+      operationId: renewToken
+      tags:
+        - RKS Node Setup
+      responses:
+        '200':
+          description: Token renewed
+        '403':
+          description: Forbidden
+  '/rks/v1/secret/{fqdn}':
+    get:
+      summary: Get fqdn secret
+      description: |
+        Get Secret for **fqdn**\
+        **nodeToken** or **adminToken** is used as X-Vault-Token for authentication
+      operationId: getSecret
+      tags:
+        - RKS Administration
+        - RKS Secrets
+      parameters:
+        - $ref: '#/components/parameters/fqdn'
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Secret'
+        '403':
+          description: |
+            Forbidden. Invalid X-Vault-Token
+        '404':
+          description: Not Found
+    post:
+      summary: Create fqdn secret
+      description: |
+        Create Secret for **fqdn**\
+        **adminToken** is used as X-Vault-Token for authentication
+      operationId: createSecret
+      tags:
+        - RKS Administration
+      parameters:
+        - $ref: '#/components/parameters/fqdn'
+      requestBody:
+        description: Secret
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Secret'
+      responses:
+        '204':
+          description: Secret created
+        '403':
+          description: |
+            Forbidden. Invalid X-Vault-Token
+        '409':
+          description: Conflict Secret already exists
+    put:
+      summary: Update fqdn secret
+      description: |
+        Update Secret for **fqdn**\
+        **adminToken** is used as X-Vault-Token for authentication
+      operationId: updateSecret
+      tags:
+        - RKS Administration
+      parameters:
+        - $ref: '#/components/parameters/fqdn'
+      requestBody:
+        description: Secret
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Secret'
+      responses:
+        '200':
+          description: Secret updated
+        '403':
+          description: |
+            "Forbidden. Invalid X-Vault-Token"
+        '404':
+          description: Not Found
+    delete:
+      summary: Delete fqdn secret
+      description: |
+        Delete Secret for **fqdn**\
+        **adminToken** is used as X-Vault-Token for authentication
+      operationId: deleteSecret
+      tags:
+        - RKS Administration
+      parameters:
+        - $ref: '#/components/parameters/fqdn'
+      responses:
+        '204':
+          description: secret deleted
+        '403':
+          description: |
+            Forbidden. **adminToken** does not allow to retrieve **fqdn**
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict, Secret associated with at least one group
+  '/rks/v1/secret/{fqdn}/groups':
+    get:
+      summary: Get list of groupname associated to this fqdn secret
+      description: |
+        Get list of groupname associated to Secret with **fqdn**\
+        **adminToken** is used as X-Vault-Token for authentication
+      operationId: getSecretGroups
+      tags:
+        - RKS Administration
+      parameters:
+        - $ref: '#/components/parameters/fqdn'
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  example: "cdn1"
+        '403':
+          description: Forbidden. Invalid X-Vault-Token
+        '404':
+          description: secret Not Found
+components:
+  parameters:
+    groupname:
+      name: groupname
+      in: path
+      required: true
+      description: GroupName
+      schema:
+        type: string
+        example: "cdn1"
+        pattern: "^[a-zA-Z0-9\\-]{1,64}$"
+    fqdn:
+      name: fqdn
+      in: path
+      required: true
+      description: FQDN
+      schema:
+        type: string
+        example: "test.com"
+    nodeId:
+      name: X-LCDN-nodeId
+      in: header
+      required: true
+      description: |
+        **nodeID**
+      schema:
+        type: string
+        example: "8c03fb4a-007f-11ea-9383-0fd702e68c30"
+        pattern: "^[a-zA-Z0-9\\-]{1,64}$"
+  securitySchemes:
+    X-Vault-Token:
+      type: apiKey
+      in: header
+      name: X-Vault-Token
+      description: |
+        X-Vault-Token is a token obtained from Vault
+
+        In the RKS context it can either be a **rootToken** (for initialization), an **adminToken**, a **groupToken** or a **nodeToken** depending on the API endpoint
+  schemas:
+    AdminToken:
+      properties:
+        adminToken:
+         type: string
+         example: "5Rgiycc79m1oNsNxCM3WAHe5"
+    GroupToken:
+      properties:
+        groupToken:
+          type: string
+          example: "5Rgiycc79m1oNsNxCM3WAHe5"
+    AdminCredentials: 
+      required:
+        - login
+        - password
+      properties:
+        login:
+          type: string
+          example: "adminlogin"
+        password:
+          type: string
+          example: "adminpassword"
+    GroupRegInfo:
+      required:  
+        - callbackURL
+        - oauthURL
+        - oauthClientID
+        - oauthClientSecret
+      properties:
+        callbackURL:
+          type: string
+          example: "https://group-manager.group:3000/prefix"
+        oauthURL:
+          type: string
+          example: "https://group-manager.group:3000/api/identity/oauth/token"
+        oauthClientID:
+          type: string
+          example: "f146c93f-00af-42a2-9667-8c0d99b37953"
+        oauthClientSecret:
+          type: string
+          example: "da5edef7-1664-42b9-8fa7-5a107e7cca32"
+    NodeToken:
+      properties:
+        nodeToken:
+          type: string
+          example: "9rh0eTSZQQwmGIq411FNWon5"
+        ttl:
+          type: integer
+          example: 3600
+    GroupConfig:
+      required:
+        - default-ttl
+        - prefetchFQDNs
+      properties:
+        default-ttl:
+          description: Default time to live in cache in seconds
+          type: integer
+          example: 3600
+        prefetchFQDNs:
+          type: array
+          items:
+            type: string
+            example: "test.com,test2.com"
+    Secret:
+      properties:
+        data:
+          type: object
+          properties:
+            meta:
+              type: object
+              properties:
+                ttl:
+                  type: integer
+                  example: 300
+            certificate:
+              type: string
+              example: |
+                -----BEGIN CERTIFICATE-----
+                MIIDazCCAlOgAwIBAgIUVrI55JBO8/sOFVZNHDRXclYg0ZEwDQYJKoZIhvcNAQEL
+                BQAwRTELMAkGA1UEBhMCRlIxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoM
+                GEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZDAeFw0xOTA0MTgwOTE4MzhaFw0yMDA0
+                MTcwOTE4MzhaMEUxCzAJBgNVBAYTAkZSMRMwEQYDVQQIDApTb21lLVN0YXRlMSEw
+                HwYDVQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQwggEiMA0GCSqGSIb3DQEB
+                AQUAA4IBDwAwggEKAoIBAQC5KObK3V0V+vdwwiP235dkYuscRGti0yi98NlfdFUu
+                O2bn7DUPZ52+6PPOCpKk2GjOuEEKb4NqI453EJeLiVi4C0HEEMXEe8gQw3N4d/7U
+                A1aqBT7MrlT9bUP7lVFzzd9tqmkGpybbsJupVzNPZpt4V/4B7fI290xO9ZKPHhSn
+                ADZHTvyJOQv6DSlniWq9mhbUXMBPrFsZ0Y7K1urk52SpmzRF24Kicl0oOfkfB1/S
+                Hu6p/CZeByXYOOFtpWUB+696VKt6XKpcK7IwFxLYSLTiOC5K2h92mk7nyvfv/lty
+                ZcMrjTDmIqegJIo1mhAX1/oENfAKbXWMZxDSZ1WKCYnhAgMBAAGjUzBRMB0GA1Ud
+                DgQWBBSnYyNt1NWnvNbG/iZxxOCgWcfYTzAfBgNVHSMEGDAWgBSnYyNt1NWnvNbG
+                /iZxxOCgWcfYTzAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQB6
+                /JTuMUd7mtnOX058h4RAioj8ZdHtmX90zuTtqF2TAfxcq3UpJmyeZJUNhQI4t8CF
+                g1Csq5p+NexqCqSuGQ2Kx3s6sJLQwkyX/3NX677QDlYhTrS7I35eKMTVIffbI4us
+                rzoPraEBJHO2shEiGsGpjEl8rMBAyGk+RoDZ/Stn/nsWeK2khwQVac+FVG7zVO5L
+                /HTFEd6AIEAFjrwRuPC3kItc5fwlSXBn45v8TjYgCypnDzxFgc7dVps5CVN5tQT9
+                YpaZ244cHPSNCfYsQHIc4Oe7dqmYeitMMSrHEetHf97yIKIKL+RrWusq3LCR1WhQ
+                ZPFuGpZsnupYtUZ3c34D
+                -----END CERTIFICATE----
+            private_key:
+              type: string
+              example: |
+                -----BEGIN PRIVATE KEY-----
+                MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC5KObK3V0V+vdw
+                wiP235dkYuscRGti0yi98NlfdFUuO2bn7DUPZ52+6PPOCpKk2GjOuEEKb4NqI453
+                EJeLiVi4C0HEEMXEe8gQw3N4d/7UA1aqBT7MrlT9bUP7lVFzzd9tqmkGpybbsJup
+                VzNPZpt4V/4B7fI290xO9ZKPHhSnADZHTvyJOQv6DSlniWq9mhbUXMBPrFsZ0Y7K
+                1urk52SpmzRF24Kicl0oOfkfB1/SHu6p/CZeByXYOOFtpWUB+696VKt6XKpcK7Iw
+                FxLYSLTiOC5K2h92mk7nyvfv/ltyZcMrjTDmIqegJIo1mhAX1/oENfAKbXWMZxDS
+                Z1WKCYnhAgMBAAECggEBAKup2A9Mm/i87JuF4oIHWfygGQnkBQtiaetvWJi+6hoq
+                yIVM4QSfNAjDQQZNlxdt6/17phFewZ+tx29r2pRrie1Xwmlcg35epGWmT2/pEEDP
+                t5F5u3dYSUOMAfNFxHZw8CxkSWr5nXUgj7C4P8Hlh05ThhOT33RGYmDyHCbD5LHO
+                VJ0ssrl4QkotgfOXYrvyY3yiy9PamUIbSb0/Yf5e9x/6QTXmXeZlfYFBVYE/aWQ/
+                Cs+2iQOep5eE9XvTkbkP5cqqSrZYQID3wAz2IkJG5HmqEpqEcuETsxrlyr/vHNPu
+                LZyN4E07QGXKSqxgp+vV1n3IjIIusHLvZV6/ujSPDIECgYEA4LF/SEBetpvOKwPD
+                cH3uMMaY7nNGdEdWlrLAXVJHU489qpAMsPC9mcLV4tOEMVGmfyXWVBYVbFeOS59s
+                6TYhtDAyr7R2yd07IneyWWbpOBnez+UNshomCiQbwdAHj9vJ1QyCN8VyxWF/jwyG
+                mDfa+gcDK0f02XfX2MwJ5WR/QAUCgYEA0vVLxyJY/HlhbJrgrheKD1CCw7W+U17h
+                yoVTZXAbGw0DCAHijhfBN9teQtgMHpxYA5f2H7INp1expHbqqnXK0Yze/Hpqt/nD
+                wuaC7bhAr1+hJTZYDM2C6cv47+yN0EK8JZ/JXC17AikG/0/bqoRIW43WIj/prvuV
+                a2a1x0sVdS0CgYBKzm1c5alizG6QXZlky1hQvt3NjW1oaxPF6k8nAqyigi76qSjA
+                g/XryjUhZmA9dzyiWjuIFS4euuux+6rr3czMy7skSkW+ITx91jH3l86PkfVfa5fq
+                ss/1Ul43YYYS/A6vMpHr9X2nfzVTr8zjwrzRvyHr9/HpsP+Yux2UVKgU7QKBgHDQ
+                OsjwJlRF+QKiRHr1HaCY9oUAoRpmiCrMZ8+8RtKNf8x9bZF9RJfBWUQ30ytfgnXR
+                gw5qIoEWFWqVKWMlAORVCD5OnNlr2PNWYDgOK5Fde4ix6h5WnKa4rJRplWEE/ybD
+                r2P68mgyVoqcQyWJ/kPvss64DRjFc59u2tEL5xq1AoGBALDpkGkc9bT3bu9jYU8u
+                wo7EOtwlb7L4pY1h3lktMNM0v9cQBG9kZhFWu4uQ/jdanG5w9oYQd8X55bPzN6yj
+                +9xiOEcTNrlo9vuonkMoyiwDua6H90vv3sgBJ80WDTn6sW/SXRTwDbE8Dn9ODv65
+                adVJ9a+aAf+SYT8HpMNezvro
+                -----END PRIVATE KEY-----
+

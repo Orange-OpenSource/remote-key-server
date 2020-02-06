@@ -1,0 +1,5 @@
+cryptography
+pytest>=4.3.0
+pytest-html
+requests>=2.20.0
+./rksclient
