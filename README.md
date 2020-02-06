@@ -2,18 +2,18 @@
 > Centralized key server for management and distribution of TLS certificates and private keys to edge servers
 
 ## What is the Remote Key Server
-The Remote Key Server is a solution to store TLS certificates and private keys and give secure access to this secrets to remote nodes. 
+The Remote Key Server is a solution to store TLS certificates and private keys and give secure access to this secrets to remote nodes.
 The main use case is enabling distributed servers to serve HTTPS traffic while securing the TLS keys storage and delivery.
 
 Here are a few selling points
 - Change from a push model where private keys are provisionned on nodes to a pull model where nodes ask for the private key only when they need it
 - By allowing nodes to request private keys on demand, they don't need to store it on disk and can keep it in memory
-- Ease certificates updates by only having to update the certificate on the RKS. This is especially useful in the context of short lived certificates (Mostly let's encrypt for the moment but other proposals are on the way)
+- Ease certificates updates by only having to update the certificate on the RKS. This is especially useful in the context of short lived certificates
 
-The **RKS** is an API wrapper around Hashicorp Vault. 
-It restricts and simplifies Vault to model interactions between nodes who need access to secret TLS keys and Vault which stores it.
+The **RKS** is an API wrapper around Hashicorp Vault.
+It restricts and simplifies Vault to model interactions between servers who need access to secret TLS keys and Vault which stores them.
 
-Vault being a big toolbox with a lot of functionalities, we decided to implement an API on top of it with higher level functionalities. 
+Vault being a big toolbox with a lot of functionalities, we decided to implement an API on top of it with higher level functionalities.
 That way we can simplify it's usage while hiding Vault intricacies like backend setup, token generation, policies.
 
 The API revolves around *Nodes* which need access to certain certificates/keys and *Group* of Nodes which represent logical grouping of nodes with same access to secrets
@@ -25,11 +25,11 @@ You will need Make, Docker, jq and curl installed to run the development environ
 
 You can start the environment with:
 ```bash
-make dev-env # Optionally add "-j4" to run targets in parallel
+make dev-env # Optionally add "-j4" flag to run targets in parallel
 ```
 The vault root token needed for the RKS initialization is printed in the **root\_token** file
 
-The RKS is started with the following default administration credentials: 
+The RKS is started with the following default administration credentials:
 
 | User | Password |
 | ------ | ------ |
@@ -38,8 +38,7 @@ The RKS is started with the following default administration credentials:
 The TLS certificate used to run the RKS is available [here](./certs).
 
 Since it is a self signed certificate you will need to disable certificate checking when you access the API.
-
-It is done using the `-k` flag with curl
+This is done with the `-k` flag with curl
 
 You can check that the RKS is running by issuing:
 ```bash
@@ -47,7 +46,7 @@ curl -k https://localhost:8080/healthz
 ```
 
 ## Usage
-The full RKS API specification can be browsed using:
+The full RKS API specification can be accessed using:
 ```bash
 make run-openapi-webui
 ```
@@ -63,14 +62,14 @@ $ curl -k https://localhost:8080/rks/v1/admin/login -H "Content-Type: applicatio
 {"adminToken":"s.O4G0w1m0Sd29NrMVLv6FVhul"}
 $ export ADMIN_TOKEN=s.O4G0w1m0Sd29NrMVLv6FVhul
 
-# Create a group named "test" without configuring node verification
+# Create a group named "test" without configuring node verification (callbackURL="")
 $ curl -k https://localhost:8080/rks/v1/group/test -H "X-Vault-Token: $ADMIN_TOKEN" -H "Content-Type: application/json" \
     -d '{"callbackURL": "", "oauthURL": "", "oauthClientID": "", "oauthClientSecret": ""}'
 {"groupToken":"s.v8f6vSBoCcSCTkGl2Y9ukq1t"}
 $ export GROUP_TOKEN=s.v8f6vSBoCcSCTkGl2Y9ukq1t
 
 # Push a secret on the RKS named rks.local, use the RKS development certificate + private key
-# The awk part is to convert hidden newline characters to \n
+# The awk command converts line returns in the PEM files to \n
 $ curl -k https://localhost:8080/rks/v1/secret/rks.local -H "X-Vault-Token: $ADMIN_TOKEN" -H "Content-Type: application/json" \
     -d "{\"data\": {\
             \"certificate\": \"$(awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' ./certs/rks.local.pem)\",\
@@ -82,9 +81,9 @@ $ curl -k https://localhost:8080/rks/v1/secret/rks.local -H "X-Vault-Token: $ADM
 # Associate rks.local secret to the test group
 $ curl -k -X POST https://localhost:8080/rks/v1/group/test/secrets/rks.local -H "X-Vault-Token: $ADMIN_TOKEN" -H "Content-Type: application/json"
 
-# Register a new node in the group "test"
+# Register a new node in the group "test" with 1 as node ID
 $ curl -k -X POST https://localhost:8080/rks/v1/node -H "X-Vault-Token: $GROUP_TOKEN" -H "Content-Type: application/json" -H "X-LCDN-nodeId: 1"
-{"nodeToken":"s.CnEyNurJEztF1xrM8gA24ntR","ttl":180}
+{"nodeToken":"s.CnEyNurJEztF1xrM8gA24ntR","ttl":600}
 $ export NODE_TOKEN=s.CnEyNurJEztF1xrM8gA24ntR
 
 # Get the rks.local secret using node token
@@ -93,18 +92,19 @@ $ curl -k https://localhost:8080/rks/v1/secret/rks.local -H "X-Vault-Token: $NOD
 
 # Renew node token
 $ curl -k -X POST https://localhost:8080/rks/v1/auth/token/renew-self -H "X-Vault-Token: $NODE_TOKEN" -H "Content-Type: application/json"
-{"nodeToken":"s.KzcudAWeA5dxCoXWLdcsymGP","ttl":180}
+{"nodeToken":"s.KzcudAWeA5dxCoXWLdcsymGP","ttl":600}
 
 # Remove rks.local association to "test"
 $ curl -k -X DELETE https://localhost:8080/rks/v1/group/test/secrets/rks.local -H "X-Vault-Token: $ADMIN_TOKEN"
 
 # Try to get secret again
+# Now that the secret is no longer associated with the "test" group, the access is denied by the RKS
 $ curl -k https://localhost:8080/rks/v1/secret/rks.local -H "X-Vault-Token: $NODE_TOKEN"
 failed
 ```
 
 ## Description
-The RKS is based on [Hashicorp Vault](https://github.com/hashicorp/vault) secret store. 
+The RKS is based on [Hashicorp Vault](https://github.com/hashicorp/vault) secret store.
 It wraps Vault API to manage, store and deliver TLS private keys and certificates in the context of HTTPS content delivery
 
 It builds upon Vault to provide a simple API to:
@@ -122,27 +122,25 @@ It consists of 4 sub API defined in the [OpenAPI specification](./rks-openapi.ya
 ### Concepts
 The RKS is based on two concepts: nodes and group of nodes
 
-A node is an entity requiring access to certificates and private keys in order to establish sessions with clients. 
+A node is an entity requiring access to certificates and private keys in order to establish sessions with clients.
 It can be an edge server, a cache server, a load balancer...
 
-A group of nodes represent a system like a Content Delivery Network, Edge computing sites, distributed HTTP proxies... 
-All nodes in a group share the same permissions.
+A group of nodes represent a system like a Content Delivery Network, Edge computing sites, distributed HTTP proxies...
+All nodes in a group share the same secret access permissions.
 
-On creation, a group is given a **group token**. 
-This **group token** has to be provisionned onto group nodes so that they can requests their **node token** to the RKS.
+On creation, a group is given a **group token**.
+This **group token** has to be provisionned onto group nodes so that they can request their **node token** to the RKS.
 
 For a node to get it's node token, it has to make a call to the registration endpoint of the rks using the group token.
-If a callback url has been configured on group creation it will be called on each node registration. 
-According to the callback url HTTP return code the node will be provided a **node token** (HTTP 200) or be denied (40X, 50X)
+If a callback url has been configured on group creation it will be called on each node registration.
+An example callback URL implementation is available in [./tests/mock-callback-server/server.py](./tests/mock-callback-server/server.py). According to the callback server response the node will be provided a **node token** (HTTP 200) or be refused (40X, 50X)
 
-This allows groups to control which node can register to the RKS
+This allows groups to control which node can register to the RKS and protect against **group token** compromission by adding another layer of verification
 
-This simple architecture allows to configure and monitor group access to secrets and revoke entire group nodes token or individual node token in case of token compromission.
-
-A node can access authorized secrets for his group on demand by querying the secret endpoint using its node token. 
-If the node is allowed to access the secret, it is delivered along a Time To Live indicating for how long the node can keep the secret. 
-When the ttl expires the node must destroy the secret and query the secret endpoint again. 
-This ttl is there to avoid nodes storing secrets on disk or for a long time when it is not needed
+A node can access secrets authorized for his group on demand by querying the secret endpoint using its node token.
+If the node is allowed to access the secret, it is delivered along a Time To Live indicating for how long the node can keep the secret.
+When the TTL expires the node **must** destroy the secret and query the secret endpoint again.
+This TTL is there to avoid nodes storing secrets on disk or for a long time when it is not needed
 
 ## Links
 - Project Homepage: https://github.com/Orange-OpenSource/remote-key-server
@@ -151,3 +149,4 @@ This ttl is there to avoid nodes storing secrets on disk or for a long time when
 ## Authors
 - Glenn Feunteun
 - Celine Nicolas
+- Benoît Gaussen
