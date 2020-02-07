@@ -2,7 +2,7 @@
 > Centralized key server for management and distribution of TLS certificates and private keys to edge servers
 
 ## What is the Remote Key Server
-The Remote Key Server is a solution to store TLS certificates and private keys and give secure access to this secrets to remote nodes.
+The Remote Key Server is a solution to store TLS certificates and private keys and give secure access to these secrets to remote nodes.
 The main use case is enabling distributed servers to serve HTTPS traffic while securing the TLS keys storage and delivery.
 
 Here are a few selling points
@@ -14,7 +14,7 @@ The **RKS** is an API wrapper around Hashicorp Vault.
 It restricts and simplifies Vault to model interactions between servers who need access to secret TLS keys and Vault which stores them.
 
 Vault being a big toolbox with a lot of functionalities, we decided to implement an API on top of it with higher level functionalities.
-That way we can simplify it's usage while hiding Vault intricacies like backend setup, token generation, policies.
+That way we can simplify its usage while hiding Vault intricacies like backend setup, token generation, policies.
 
 The API revolves around *Nodes* which need access to certain certificates/keys and *Group* of Nodes which represent logical grouping of nodes with same access to secrets
 
