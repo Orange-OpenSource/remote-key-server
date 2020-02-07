@@ -193,6 +193,8 @@ class TestRKSAdministrationApi(object):
             excinfo.value.status == 409
         ), "Error with multiple init, must return 409 code"
 
+    def test_init_without_content_type_header(self, rks_url):
+
         # test a call to init endpoint without content-type header fix #1
         response = requests.post(
             rks_url + "/rks/v1/init",
