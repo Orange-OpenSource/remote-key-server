@@ -43,7 +43,7 @@ func ContentEncodingCheckerMiddleWare(next http.Handler) http.Handler {
 
 func ContentTypeCheckerMiddleWare(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "POST" || r.Method == "PUT" {
+		if (r.Method == "POST" || r.Method == "PUT") && !RequestWithoutJsonBody(r) {
 			contentType := strings.ToLower(r.Header.Get("Content-Type"))
 			if contentType != "application/json" {
 				rksErr := model.RksError{WrappedError: nil, Message: "Content-Type Header not valid", Code: 415}
@@ -55,11 +55,8 @@ func ContentTypeCheckerMiddleWare(next http.Handler) http.Handler {
 	})
 }
 
-// disallow body in requests who don't need it (according to the specs)
-// A HTTP/2 bug results in a body non nil and non equals to http.NoBody in the http request
-// Therefore we need to check if the given body is empty or not
-// To do that we try to read one byte from the body and check if we have io.EOF
-func RouteWithoutJsonBody(r *http.Request, rm *mux.RouteMatch) bool {
+func RequestWithoutJsonBody(r *http.Request) bool {
+
 	if r.Body == nil || r.Body == http.NoBody {
 		return true
 	}
@@ -84,6 +81,16 @@ func RouteWithoutJsonBody(r *http.Request, rm *mux.RouteMatch) bool {
 	r.Body = ioutil.NopCloser(io.MultiReader(bytes.NewBuffer(firstByte), bytes.NewBuffer(restOfBody))) // Recompose body from the first byte read and the rest of the body
 
 	return false
+}
+
+// disallow body in requests who don't need it (according to the specs)
+// A HTTP/2 bug results in a body non nil and non equals to http.NoBody in the http request
+// Therefore we need to check if the given body is empty or not
+// To do that we try to read one byte from the body and check if we have io.EOF
+func RouteWithoutJsonBody(r *http.Request, rm *mux.RouteMatch) bool {
+
+	return RequestWithoutJsonBody(r)
+
 }
 
 func RouteWithJsonBody(r *http.Request, rm *mux.RouteMatch) bool {
