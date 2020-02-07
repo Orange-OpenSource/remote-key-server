@@ -174,7 +174,7 @@ class TestRKSAdministrationApi(object):
         response, status, headers = admin_api.delete_group_with_http_info("fakecdn3")
         assert status == 204, "Incorrect status code on delete (must return 204)"
 
-    def test_multiple_init(self, init_api):
+    def test_multiple_init(self, init_api, rks_url):
 
         # Test with incorrect admin_api key => must return 403
         init_api.api_client.configuration.api_key["X-Vault-Token"] = utils.WRONG_TOKEN
@@ -192,6 +192,16 @@ class TestRKSAdministrationApi(object):
         assert (
             excinfo.value.status == 409
         ), "Error with multiple init, must return 409 code"
+
+    def test_init_without_content_type_header(self, rks_url):
+
+        # test a call to init endpoint without content-type header fix #1
+        response = requests.post(
+            rks_url + "/rks/v1/init",
+            headers={"X-Vault-Token": utils.ADMIN_TOKEN},
+            verify=False,
+        )
+        assert response.status_code == 409
 
     def test_get_secret(self, admin_api, test_dot_com_secret):
         s = admin_api.get_secret("test.com")

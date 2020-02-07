@@ -43,7 +43,7 @@ func ContentEncodingCheckerMiddleWare(next http.Handler) http.Handler {
 
 func ContentTypeCheckerMiddleWare(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "POST" || r.Method == "PUT" {
+		if (r.Method == "POST" || r.Method == "PUT") && HasJsonBody(r) {
 			contentType := strings.ToLower(r.Header.Get("Content-Type"))
 			if contentType != "application/json" {
 				rksErr := model.RksError{WrappedError: nil, Message: "Content-Type Header not valid", Code: 415}
@@ -55,35 +55,42 @@ func ContentTypeCheckerMiddleWare(next http.Handler) http.Handler {
 	})
 }
 
-// disallow body in requests who don't need it (according to the specs)
-// A HTTP/2 bug results in a body non nil and non equals to http.NoBody in the http request
-// Therefore we need to check if the given body is empty or not
-// To do that we try to read one byte from the body and check if we have io.EOF
-func RouteWithoutJsonBody(r *http.Request, rm *mux.RouteMatch) bool {
+func HasJsonBody(r *http.Request) bool {
+
 	if r.Body == nil || r.Body == http.NoBody {
-		return true
+		return false
 	}
 
 	// Read first body byte
 	firstByte := make([]byte, 1)
 	_, err := io.ReadFull(r.Body, firstByte)
 	if err == io.EOF { // No byte to read => No body
-		return true
-	} else if err != nil {
 		return false
+	} else if err != nil {
+		return true
 	}
 
 	// If we have a body we must rebuild one for the next gorilla route matcher
 	// We read the rest of the body
 	restOfBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return false
+		return true
 	}
 	r.Body.Close() // must close once read
 
 	r.Body = ioutil.NopCloser(io.MultiReader(bytes.NewBuffer(firstByte), bytes.NewBuffer(restOfBody))) // Recompose body from the first byte read and the rest of the body
 
-	return false
+	return true
+}
+
+// disallow body in requests who don't need it (according to the specs)
+// A HTTP/2 bug results in a body non nil and non equals to http.NoBody in the http request
+// Therefore we need to check if the given body is empty or not
+// To do that we try to read one byte from the body and check if we have io.EOF
+func RouteWithoutJsonBody(r *http.Request, rm *mux.RouteMatch) bool {
+
+	return !HasJsonBody(r)
+
 }
 
 func RouteWithJsonBody(r *http.Request, rm *mux.RouteMatch) bool {
