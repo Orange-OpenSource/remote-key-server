@@ -54,7 +54,7 @@ make run-openapi-webui
 The following commands show the main functionalities of the RKS API
 ```bash
 # Initialize the RKS using vault root token
-$ curl -k -X POST https://localhost:8080/rks/v1/init -H "X-Vault-Token: $(cat root_token)" -H "Content-Type: application/json"
+$ curl -k -X POST https://localhost:8080/rks/v1/init -H "X-Vault-Token: $(cat root_token)"
 
 # Login to get an admin token
 $ curl -k https://localhost:8080/rks/v1/admin/login -H "Content-Type: application/json" \
@@ -79,10 +79,10 @@ $ curl -k https://localhost:8080/rks/v1/secret/rks.local -H "X-Vault-Token: $ADM
     }"
 
 # Associate rks.local secret to the test group
-$ curl -k -X POST https://localhost:8080/rks/v1/group/test/secrets/rks.local -H "X-Vault-Token: $ADMIN_TOKEN" -H "Content-Type: application/json"
+$ curl -k -X POST https://localhost:8080/rks/v1/group/test/secrets/rks.local -H "X-Vault-Token: $ADMIN_TOKEN"
 
 # Register a new node in the group "test" with 1 as node ID
-$ curl -k -X POST https://localhost:8080/rks/v1/node -H "X-Vault-Token: $GROUP_TOKEN" -H "Content-Type: application/json" -H "X-LCDN-nodeId: 1"
+$ curl -k -X POST https://localhost:8080/rks/v1/node -H "X-Vault-Token: $GROUP_TOKEN" -H "X-LCDN-nodeId: 1"
 {"nodeToken":"s.CnEyNurJEztF1xrM8gA24ntR","ttl":600}
 $ export NODE_TOKEN=s.CnEyNurJEztF1xrM8gA24ntR
 
@@ -91,7 +91,7 @@ $ curl -k https://localhost:8080/rks/v1/secret/rks.local -H "X-Vault-Token: $NOD
 {"data":{"meta":{"ttl":10},"certificate":"-----BEGIN CERTIFICATE----- [...]"}}
 
 # Renew node token
-$ curl -k -X POST https://localhost:8080/rks/v1/auth/token/renew-self -H "X-Vault-Token: $NODE_TOKEN" -H "Content-Type: application/json"
+$ curl -k -X POST https://localhost:8080/rks/v1/auth/token/renew-self -H "X-Vault-Token: $NODE_TOKEN"
 {"nodeToken":"s.KzcudAWeA5dxCoXWLdcsymGP","ttl":600}
 
 # Remove rks.local association to "test"
