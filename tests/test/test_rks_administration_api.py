@@ -141,6 +141,54 @@ class TestRKSAdministrationApi(object):
         response, status, headers = admin_api.delete_group_with_http_info("fakecdn1")
         assert status == 204, "Delete group does not return 204 as expected"
 
+    @pytest.mark.update_group
+    def test_update_group(self, admin_api, group_token):
+        """Test case for update_group
+
+        Update a Group of Nodes to update registration information
+        """
+
+        group_token, status, headers = admin_api.update_group_with_http_info(
+            "fakecdn1", utils.group_reg_info_updated
+        )
+        assert status == 200
+
+        with pytest.raises(ApiException) as excinfo:
+            group_token, status, headers = admin_api.update_group_with_http_info(
+                "fakecdn11", utils.group_reg_info_updated
+            )
+        assert (
+            excinfo.value.status == 404
+        ), "Updating an unknown group does not fail (must return 404)"
+
+        # Test groupname with invalid characters
+        with pytest.raises(ApiValueError) as excinfo:
+            group_token, status, headers = admin_api.update_group_with_http_info(
+                "f%µecdn1", utils.group_reg_info_updated
+            )
+        # assert excinfo.value.status == 404
+
+        # Test groupname with more than 64 characters
+        with pytest.raises(ApiValueError) as excinfo:
+            group_token, status, headers = admin_api.update_group_with_http_info(
+                "d7b33fbc-007d-11ea-95ba-2f865341a298-d7b33fbc-007d-11ea-95ba-2f865341a298",
+                utils.group_reg_info_updated,
+            )
+        # assert excinfo.value.status == 404
+
+        # Test with incorrect admin_api key => must return 403
+        admin_api.api_client.configuration.api_key["X-Vault-Token"] = utils.WRONG_TOKEN
+        with pytest.raises(ApiException) as excinfo:
+            group_token, status, headers = admin_api.update_group_with_http_info(
+                "fakecdn1", utils.group_reg_info
+            )
+        assert (
+            excinfo.value.status == 403
+        ), "Invalid Token does not return Forbidden (must return 403)"
+
+        # reset admin_api with root token and delete group
+        admin_api.api_client.configuration.api_key["X-Vault-Token"] = utils.ADMIN_TOKEN
+
     def test_delete_group(self, admin_api):
 
         # create group to delete it
