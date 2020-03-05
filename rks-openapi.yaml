@@ -96,6 +96,26 @@ paths:
           description: "Forbidden. Invalid X-Vault-Token"
         '409':
           description: Conflict Group already exists
+    get:
+      summary: Get registration information for a Group of Nodes
+      description: |
+        Authenticate with **admin_token**
+      tags:
+        - RKS Administration
+      operationId: getGroup
+      parameters:
+        - $ref: '#/components/parameters/groupname'
+      responses:
+        '200':
+          description: Group registration information successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupRegInfo'
+        '403':
+          description: "Forbidden. Invalid X-Vault-Token"
+        '404':
+          description: "Group not found"
     put:
       summary: Update a Group of Nodes
       description: |

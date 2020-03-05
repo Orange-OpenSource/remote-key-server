@@ -146,9 +146,54 @@ func UpdateGroup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	logger.WithResponseStatus(customLogger, w).Info("created group")
+	if err := utils.WriteStructAsJSON(w, groupRegInfo); err != nil {
+		err.HandleErr(r.Context(), w)
+		return
+	}
+	logger.WithResponseStatus(customLogger, w).Info("updated group")
 
 }
+
+func GetGroup(w http.ResponseWriter, r *http.Request) {
+
+	vars := mux.Vars(r)
+	group := vars["groupname"]
+
+	customLogger := logger.NewLoggerFromContext(r.Context()).WithField("groupname", group)
+	r = r.WithContext(logger.ContextWithLogger(r.Context(), customLogger))
+
+	customLogger.WithField("token", r.Header.Get("X-Vault-Token")).Debug("token used")
+	vaultClient, rksErr := vault.NewVaultClientFromHTTPRequest(r)
+
+	if rksErr != nil {
+		rksErr.HandleErr(r.Context(), w)
+		return
+	}
+
+	if exists, rksErr := vaultClient.GroupExists(group); rksErr != nil {
+		rksErr.HandleErr(r.Context(), w)
+		return
+	} else if !exists {
+		(&model.RksError{WrappedError: nil, Message: "Group not found", Code: 404}).HandleErr(r.Context(), w)
+		return
+	}
+
+	//Read Group config in vault
+	groupRegInfo, rksErr := vaultClient.ReadGroupConfig(group)
+	if rksErr != nil {
+		rksErr.HandleErr(r.Context(), w)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	if err := utils.WriteStructAsJSON(w, groupRegInfo); err != nil {
+		err.HandleErr(r.Context(), w)
+		return
+	}
+	logger.WithResponseStatus(customLogger, w).Info("Read group config")
+
+}
+
 func DeleteGroup(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	group := vars["groupname"]
