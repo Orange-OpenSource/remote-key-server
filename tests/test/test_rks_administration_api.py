@@ -216,10 +216,10 @@ class TestRKSAdministrationApi(object):
             group_reg_info.oauth_client_id,
             group_reg_info.oauth_client_secret,
         ) == (
-            utils.group_reg_info_updated.callback_url,
-            utils.group_reg_info_updated.oauth_url,
-            utils.group_reg_info_updated.oauth_client_id,
-            utils.group_reg_info_updated.oauth_client_secret,
+            utils.group_reg_info.callback_url,
+            utils.group_reg_info.oauth_url,
+            utils.group_reg_info.oauth_client_id,
+            utils.group_reg_info.oauth_client_secret,
         ), "Group registration information not well read"
 
         with pytest.raises(ApiException) as excinfo:
