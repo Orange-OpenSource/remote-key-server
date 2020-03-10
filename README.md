@@ -1,3 +1,4 @@
+![Remote Key Server CI](https://github.com/Orange-OpenSource/remote-key-server/workflows/Remote%20Key%20Server%20CI/badge.svg)
 # Remote Key Server (RKS)
 > Centralized key server for management and distribution of TLS certificates and private keys to edge servers
 
