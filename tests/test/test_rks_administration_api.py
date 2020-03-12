@@ -200,17 +200,7 @@ class TestRKSAdministrationApi(object):
         group_reg_info, status, headers = admin_api.get_group_with_http_info("fakecdn1")
         assert status == 200, "Status code should be 200 when OK"
 
-        assert (
-            group_reg_info.callback_url,
-            group_reg_info.oauth_url,
-            group_reg_info.oauth_client_id,
-            group_reg_info.oauth_client_secret,
-        ) == (
-            utils.group_reg_info.callback_url,
-            utils.group_reg_info.oauth_url,
-            utils.group_reg_info.oauth_client_id,
-            utils.group_reg_info.oauth_client_secret,
-        ), "Group registration information not well read"
+        assert group_reg_info == utils.group_reg_info, "Group registration information not well read"
 
         with pytest.raises(ApiException) as excinfo:
             group_reg_info, status, headers = admin_api.get_group_with_http_info(
