@@ -153,17 +153,7 @@ class TestRKSAdministrationApi(object):
         assert status == 200
 
         group_reg_info, status, headers = admin_api.get_group_with_http_info("fakecdn1")
-        assert (
-            group_reg_info.callback_url,
-            group_reg_info.oauth_url,
-            group_reg_info.oauth_client_id,
-            group_reg_info.oauth_client_secret,
-        ) == (
-            utils.group_reg_info_updated.callback_url,
-            utils.group_reg_info_updated.oauth_url,
-            utils.group_reg_info_updated.oauth_client_id,
-            utils.group_reg_info_updated.oauth_client_secret,
-        ), "Group registration information not well updated"
+        assert group_reg_info == utils.group_reg_info_updated, "Group registration information not well updated"
 
         with pytest.raises(ApiException) as excinfo:
             _, status, headers = admin_api.update_group_with_http_info(
