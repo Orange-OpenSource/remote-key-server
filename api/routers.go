@@ -149,6 +149,18 @@ var routes = map[string]Route{"Index": {"GET", "/", false, Index}, "Login": {
 		true,
 		admin.CreateGroup,
 	},
+	"GetGroup": {
+		strings.ToUpper("Get"),
+		"/rks/v1/group/{groupname:[a-zA-Z0-9\\-]{1,64}}",
+		false,
+		admin.GetGroup,
+	},
+	"UpdateGroup": {
+		strings.ToUpper("Put"),
+		"/rks/v1/group/{groupname:[a-zA-Z0-9\\-]{1,64}}",
+		true,
+		admin.UpdateGroup,
+	},
 	"CreateSecret": {
 		strings.ToUpper("Post"),
 		"/rks/v1/secret/{fqdn}",
