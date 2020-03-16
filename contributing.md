@@ -84,8 +84,8 @@ We lint with golangci-lint.
 ## How Can I Contribute?
 For any contribution, such as suggesting enhancement, reporting bugs, please open an Issue.
 
-Issue title has to be relatively short, additionnal and clear information can be written in description field.
-Additionnally, feel free to use label for your issue.
+Issue title has to be relatively short, additional information can be given in description field.
+Feel free to use labels to give hints about the issue type (bug, enhancement ...).
 
 Once the issue has been created, if you want to contribute a modification, clone the repository, create a branch and implement your changes.
 You can submit a pull request when you are ready. Make sure the tests are passing or explain why they are not. Link the issue in the pull request description by adding \#<Issue Number>. 
