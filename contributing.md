@@ -87,9 +87,6 @@ For any contribution, such as suggesting enhancement, reporting bugs, please fil
 Issue title has to be relatively short, additionnal and clear information can be written in description field.
 Additionnally, feel free to use label for your issue.
 
-Once issue has been created, we ask to create a branch to work on.
-Please ensure "make test" return exit code 0 before committing into the branch.
-
-When this is done, make a pull request and assign it to **gfeun** or **celinenicolas22** or both.
-Please refers pull request to issue. 
-
+Once the issue has been created, if you want to contribute a modification, clone the repository, create a branch and implement your changes.
+You can submit a pull request when you are ready. Make sure the tests are passing or explain why they are not. Link the issue in the pull request description by adding \#<Issue Number>. 
+Finally assign  the pull request to **gfeun** or **celinenicolas22** and we will review your contribution.
