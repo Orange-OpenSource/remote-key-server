@@ -82,7 +82,7 @@ Black for Python
 We lint with golangci-lint.
 
 ## How Can I Contribute?
-For any contribution, such as suggesting enhancement, reporting bugs, please fill an Issue.
+For any contribution, such as suggesting enhancement, reporting bugs, please open an Issue.
 
 Issue title has to be relatively short, additionnal and clear information can be written in description field.
 Additionnally, feel free to use label for your issue.
