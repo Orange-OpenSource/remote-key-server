@@ -10,3 +10,4 @@
 **/global_extra_conf.py
 tests/rksclient
 root_token
+demo/

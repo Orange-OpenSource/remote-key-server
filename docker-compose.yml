@@ -30,6 +30,30 @@ services:
       - "8080:8080"
     networks:
       - demo
+  demo-init:
+    build:
+      context: .
+      dockerfile: ./scripts/Dockerfile
+    depends_on:
+      - "rks-consul"
+      - "rks-vault"
+      - "rks-server"
+    command: wait-for rks-vault:8200 -- demo_init.sh
+    volumes:
+      - ./demo/:/demo/
+    networks:
+      - demo
+  client-node:
+    build:
+      context: ./client-node
+    command: --group-token-file ./demo/group_token --node-id 1
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./demo:/demo
+    networks:
+      - demo
+    restart: on-failure
 
 networks:
   demo:
