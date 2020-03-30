@@ -5,15 +5,16 @@ services:
     image: "consul:1.6.1"
     ports:
       - "8500:8500"
+    command: consul agent -dev -client 0.0.0.0 -log-level=info
     environment:
       - CONSUL_BIND_INTERFACE=eth0
     networks:
-      - demo
+      - rks-internal
   rks-vault:
     image: "vault:1.3.1"
     cap_add:
       - IPC_LOCK
-    command: vault server -config=/etc/vault/vault_server.hcl -log-level=debug
+    command: vault server -config=/etc/vault/vault_server.hcl -log-level=info
     ports:
       - "8200:8200"
     environment:
@@ -21,7 +22,7 @@ services:
     volumes:
       - ./scripts/vault_server.hcl:/etc/vault/vault_server.hcl
     networks:
-      - demo
+      - rks-internal
   rks-server:
     build:
       context: .
@@ -29,7 +30,8 @@ services:
     ports:
       - "8080:8080"
     networks:
-      - demo
+      - rks-internal
+      - rks-external
   demo-init:
     build:
       context: .
@@ -42,8 +44,9 @@ services:
     volumes:
       - ./demo/:/demo/
     networks:
-      - demo
-  client-node:
+      - rks-internal
+      - rks-external
+  client-node-1:
     build:
       context: ./client-node
     command: --group-token-file ./demo/group_token --node-id 1
@@ -52,8 +55,23 @@ services:
     volumes:
       - ./demo:/demo
     networks:
-      - demo
+      - client
+      - rks-external
+    restart: on-failure
+  client-node-2:
+    build:
+      context: ./client-node
+    command: --group-token-file ./demo/group_token --node-id 2
+    ports:
+      - "8444:8443"
+    volumes:
+      - ./demo:/demo
+    networks:
+      - client
+      - rks-external
     restart: on-failure
 
 networks:
-  demo:
+  rks-internal:
+  rks-external:
+  client:
