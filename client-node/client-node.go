@@ -8,15 +8,18 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 	"sync"
 	"time"
 )
 
 var (
-	groupToken string
-	nodeID     string
-	nodeToken  *NodeToken  = &NodeToken{}
-	sc         SecretCache = NewSecretCache()
+	groupToken     string
+	groupTokenFile string
+	nodeID         string
+	nodeToken      *NodeToken  = &NodeToken{}
+	sc             SecretCache = NewSecretCache()
 )
 
 var (
@@ -240,12 +243,32 @@ func MyHandler(w http.ResponseWriter, req *http.Request) {
 // Example: ./client-node s.JrZbFwDsd8Z5CESkF9f90uVV 1
 func main() {
 	flag.StringVar(&groupToken, "group-token", "", "group token for this node")
+	flag.StringVar(&groupTokenFile, "group-token-file", "", "file containing group token for this node")
 	flag.StringVar(&nodeID, "node-id", "1", "unique nodeID")
 
 	flag.Parse()
 
-	if groupToken == "" {
+	if groupToken == "" && groupTokenFile == "" {
 		flag.Usage()
+		os.Exit(1)
+	}
+
+	if groupTokenFile != "" && groupToken == "" {
+		if _, err := os.Stat(groupTokenFile); err == nil {
+			// path/to/whatever exists
+			groupTokenByte, err := ioutil.ReadFile(groupTokenFile)
+			if err != nil {
+				log.Fatal(err)
+			}
+			groupToken = string(groupTokenByte)
+			groupToken = strings.TrimSuffix(groupToken, "\n")
+		} else if os.IsNotExist(err) {
+			log.Println("file not found")
+			flag.Usage()
+			os.Exit(1)
+		} else {
+			log.Fatal(err)
+		}
 	}
 
 	log.SetFlags(log.LstdFlags | log.Lshortfile)

@@ -9,6 +9,9 @@ SUDO = $(shell if type sudo > /dev/null; then echo sudo; else echo; fi) # Use su
 
 .DEFAULT_GOAL=help
 
+.PHONY: demo
+demo:
+	docker-compose down && docker-compose up --build
 
 # ----- Build and Test -----
 .PHONY: dev-env
