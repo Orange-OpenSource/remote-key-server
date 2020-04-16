@@ -125,6 +125,12 @@ func (l LoggingMiddleware) Middleware(next http.Handler) http.Handler {
 
 		requestLogger := Logger.baseLogger.WithFields(logrus.Fields{"method": r.Method, "url": r.RequestURI, "client_ip": host, "request_id": reqID.String()})
 
+		if l, ok := Logger.baseLogger.(*logrus.Logger); ok && l.Level == logrus.DebugLevel {
+			if h := r.Header.Get("X-Vault-Token"); h != "" {
+				requestLogger = requestLogger.WithField("X-Vault-Token", h)
+			}
+		}
+
 		// Create a new context from the request and add the requestLogger to it
 		w.Header().Add("Request-ID", reqID.String())
 		ctxWithLogger := ContextWithLogger(r.Context(), requestLogger)
