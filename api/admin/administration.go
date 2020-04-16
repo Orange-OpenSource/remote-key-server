@@ -61,9 +61,7 @@ func CreateGroup(w http.ResponseWriter, r *http.Request) {
 	customLogger := logger.NewLoggerFromContext(r.Context()).WithField("groupname", group)
 	r = r.WithContext(logger.ContextWithLogger(r.Context(), customLogger))
 
-	customLogger.WithField("token", r.Header.Get("X-Vault-Token")).Debug("token used")
 	vaultClient, rksErr := vault.NewVaultClientFromHTTPRequest(r)
-
 	if rksErr != nil {
 		rksErr.HandleErr(r.Context(), w)
 		return
@@ -117,9 +115,7 @@ func UpdateGroup(w http.ResponseWriter, r *http.Request) {
 	customLogger := logger.NewLoggerFromContext(r.Context()).WithField("groupname", group)
 	r = r.WithContext(logger.ContextWithLogger(r.Context(), customLogger))
 
-	customLogger.WithField("token", r.Header.Get("X-Vault-Token")).Debug("token used")
 	vaultClient, rksErr := vault.NewVaultClientFromHTTPRequest(r)
-
 	if rksErr != nil {
 		rksErr.HandleErr(r.Context(), w)
 		return
@@ -162,9 +158,7 @@ func GetGroup(w http.ResponseWriter, r *http.Request) {
 	customLogger := logger.NewLoggerFromContext(r.Context()).WithField("groupname", group)
 	r = r.WithContext(logger.ContextWithLogger(r.Context(), customLogger))
 
-	customLogger.WithField("token", r.Header.Get("X-Vault-Token")).Debug("token used")
 	vaultClient, rksErr := vault.NewVaultClientFromHTTPRequest(r)
-
 	if rksErr != nil {
 		rksErr.HandleErr(r.Context(), w)
 		return
