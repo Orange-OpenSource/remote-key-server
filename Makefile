@@ -1,6 +1,6 @@
 PACKAGE_NAME := rks
 OPENAPI_SPEC := rks-openapi.yaml
-NETWORK := rks # Can switch to bridge to use default docker network
+NETWORK := rks# Can switch to bridge to use default docker network
 RKS_IP = $(shell docker inspect rks-server | jq -r ".[].NetworkSettings.Networks.${NETWORK}.IPAddress")
 HTTP_PROXY_HOST = $(shell echo ${http_proxy} | sed 's/http:\/\/\(.*\):\([0-9]*\)\//\1/g' )
 HTTP_PROXY_PORT = $(shell echo ${http_proxy} | sed 's/http:\/\/\(.*\):\([0-9]*\)\//\2/g' )
@@ -56,7 +56,7 @@ clean-docker-%:
 
 .PHONY: docker-network
 docker-network:
-	@if ! docker network ls | grep ${NETWORK}; then \
+	@if ! docker network ls --format "{{ .Name }}"| grep "^${NETWORK}$$"; then \
 		docker network create -d bridge ${NETWORK} --subnet 172.25.0.0/24; \
 	fi
 
