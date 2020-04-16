@@ -20,9 +20,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/sirupsen/logrus"
 	"github.com/Orange-OpenSource/remote-key-server/logger"
 	"github.com/Orange-OpenSource/remote-key-server/model"
+	"github.com/sirupsen/logrus"
 )
 
 // Anonymous structure to decode json response and get oAuth access_token
@@ -44,8 +44,7 @@ func OAuthCallback(ctx context.Context, httpClient *http.Client, groupRegInfo *m
 	customLogger := logger.NewLoggerFromContext(ctx)
 	oauthReq, err := http.NewRequest("POST", groupRegInfo.OauthURL, nil)
 	if err != nil {
-		errMsg := fmt.Sprintf("error while building request to oauth to get allowed Node ")
-		return nil, &model.RksError{WrappedError: err, Message: errMsg, Code: 500}
+		return nil, &model.RksError{WrappedError: err, Message: "error while building request to oauth to get allowed Node", Code: 500}
 	}
 
 	oauthReq.SetBasicAuth(groupRegInfo.OauthClientID, groupRegInfo.OauthClientSecret)
