@@ -1,6 +1,6 @@
 name: Remote Key Server CI
 
-# Controls when the action will run. Triggers the workflow on push or pull request 
+# Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the master branch
 on:
   push:
@@ -10,14 +10,23 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
+  lint:
+    runs-on: [ubuntu-latest]
+    container: golangci/golangci-lint:v1.24.0
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: go get ./...
+      - name: Run linter
+        run: golangci-lint run ./...
+
   test:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
+    needs: lint
     steps:
-    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: Run tests
-      run: make test
+      - name: Run tests
+        run: make -j $(nproc) test
