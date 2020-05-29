@@ -220,6 +220,24 @@ paths:
           description: "Forbidden. Invalid X-Vault-Token"
         '404':
           description: Group not found
+  '/rks/v1/group/{groupname}/nodes/{nodeId}':
+    delete:
+      summary: Delete a Node, revoke its token
+      description: revoke token for node of **groupname** with nodeId like **X-LCDN-nodeId**,  
+        **adminToken** is used as X-Vault-Token for authentication
+      tags:
+        - RKS Administration
+      operationId: revokeNode
+      parameters:
+        - $ref: '#/components/parameters/groupname'
+        - $ref: '#/components/parameters/nodeId'
+      responses:
+        '204':
+          description: Node successfully deleted
+        '403':
+          description: "Forbidden. Invalid X-Vault-Token"
+        '404':
+          description: Group or node not found
   '/rks/v1/group/{groupname}/secrets':
     get:
       summary: Get secrets associated with **groupname**
