@@ -20,8 +20,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Orange-OpenSource/remote-key-server/logger"
-	"github.com/Orange-OpenSource/remote-key-server/model"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/logger"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/model"
 	"github.com/sirupsen/logrus"
 )
 

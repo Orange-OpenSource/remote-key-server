@@ -16,9 +16,9 @@ import (
 	"context"
 	"time"
 
+	"github.com/Orange-OpenSource/remote-key-server/pkg/model"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/vault"
 	log "github.com/sirupsen/logrus"
-	"github.com/Orange-OpenSource/remote-key-server/model"
-	"github.com/Orange-OpenSource/remote-key-server/vault"
 )
 
 // PeriodicGroupTokensRenew is to be launched as a goroutine

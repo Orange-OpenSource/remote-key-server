@@ -18,9 +18,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Orange-OpenSource/remote-key-server/logger"
-	"github.com/Orange-OpenSource/remote-key-server/model"
-	"github.com/Orange-OpenSource/remote-key-server/utils"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/logger"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/model"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/utils"
 	vaultAPI "github.com/hashicorp/vault/api"
 	"github.com/mitchellh/mapstructure"
 	"github.com/sirupsen/logrus"

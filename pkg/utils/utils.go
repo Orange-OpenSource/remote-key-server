@@ -18,7 +18,7 @@ import (
 	"net/http"
 	"text/template"
 
-	"github.com/Orange-OpenSource/remote-key-server/model"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/model"
 )
 
 // DecodeHTTPJSONBodyToStruct Decodes given request body inside given struct

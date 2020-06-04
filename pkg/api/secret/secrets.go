@@ -15,11 +15,11 @@ package secret
 import (
 	"net/http"
 
+	"github.com/Orange-OpenSource/remote-key-server/pkg/logger"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/model"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/utils"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/vault"
 	"github.com/gorilla/mux"
-	"github.com/Orange-OpenSource/remote-key-server/logger"
-	"github.com/Orange-OpenSource/remote-key-server/model"
-	"github.com/Orange-OpenSource/remote-key-server/utils"
-	"github.com/Orange-OpenSource/remote-key-server/vault"
 )
 
 func GetSecret(w http.ResponseWriter, r *http.Request) {
