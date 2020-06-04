@@ -20,11 +20,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Orange-OpenSource/remote-key-server/api/admin"
-	"github.com/Orange-OpenSource/remote-key-server/api/initialize"
-	"github.com/Orange-OpenSource/remote-key-server/api/node"
-	"github.com/Orange-OpenSource/remote-key-server/api/secret"
-	"github.com/Orange-OpenSource/remote-key-server/model"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/api/admin"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/api/initialize"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/api/node"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/api/secret"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/model"
 
 	"github.com/gorilla/mux"
 )

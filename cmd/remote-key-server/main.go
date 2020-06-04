@@ -25,12 +25,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 
-	"github.com/Orange-OpenSource/remote-key-server/api"
-	"github.com/Orange-OpenSource/remote-key-server/api/admin"
-	"github.com/Orange-OpenSource/remote-key-server/healthcheck"
-	"github.com/Orange-OpenSource/remote-key-server/logger"
-	"github.com/Orange-OpenSource/remote-key-server/model"
-	"github.com/Orange-OpenSource/remote-key-server/vault"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/api"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/api/admin"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/healthcheck"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/logger"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/model"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/vault"
 )
 
 func init() {

@@ -12,7 +12,7 @@ RUN go mod download
 COPY . .
 
 ENV CGO_ENABLED=0
-RUN go build -a -installsuffix cgo -o bin/rks .
+RUN go build -a -installsuffix cgo -o bin/rks ./cmd/remote-key-server/
 
 FROM alpine:3.11.2 AS runtime
 LABEL name="RKS Server" \

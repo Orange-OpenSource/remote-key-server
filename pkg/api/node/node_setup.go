@@ -16,11 +16,11 @@ import (
 	"net/http"
 	"regexp"
 
+	"github.com/Orange-OpenSource/remote-key-server/pkg/logger"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/model"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/utils"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/vault"
 	log "github.com/sirupsen/logrus"
-	"github.com/Orange-OpenSource/remote-key-server/logger"
-	"github.com/Orange-OpenSource/remote-key-server/model"
-	"github.com/Orange-OpenSource/remote-key-server/utils"
-	"github.com/Orange-OpenSource/remote-key-server/vault"
 )
 
 var validNodeID = regexp.MustCompile(`^[a-zA-Z0-9\-]{1,64}$`)

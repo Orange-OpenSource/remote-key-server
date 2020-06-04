@@ -15,9 +15,9 @@ package initialize
 import (
 	"net/http"
 
-	"github.com/Orange-OpenSource/remote-key-server/logger"
-	"github.com/Orange-OpenSource/remote-key-server/model"
-	"github.com/Orange-OpenSource/remote-key-server/vault"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/logger"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/model"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/vault"
 )
 
 func InitRKS(w http.ResponseWriter, r *http.Request) {

@@ -18,8 +18,8 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/Orange-OpenSource/remote-key-server/pkg/logger"
 	log "github.com/sirupsen/logrus"
-	"github.com/Orange-OpenSource/remote-key-server/logger"
 )
 
 type RksError struct {

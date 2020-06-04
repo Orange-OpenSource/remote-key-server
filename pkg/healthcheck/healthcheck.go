@@ -16,10 +16,10 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/Orange-OpenSource/remote-key-server/pkg/model"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/utils"
+	"github.com/Orange-OpenSource/remote-key-server/pkg/vault"
 	vaultAPI "github.com/hashicorp/vault/api"
-	"github.com/Orange-OpenSource/remote-key-server/model"
-	"github.com/Orange-OpenSource/remote-key-server/utils"
-	"github.com/Orange-OpenSource/remote-key-server/vault"
 )
 
 type RKSHealth struct {
