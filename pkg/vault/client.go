@@ -444,6 +444,16 @@ func (v *Vault) CreateNodeTokenRole(group string, nodeID string) *model.RksError
 	return nil
 }
 
+func (v *Vault) RevokeNodeToken(group string, nodeID string) *model.RksError {
+	url := fmt.Sprintf("/auth/token/create/%s-%s", group, nodeID)
+
+	err := v.Sys().RevokePrefix(url)
+	if err != nil {
+		return RKSErrFromVaultErr(err, fmt.Sprintf("Couldn't Revoke Token for node %s in groupname %s unable to register node ", nodeID, group))
+	}
+	return nil
+}
+
 func (v *Vault) CreateNodeTokenFromRole(group string, nodeID string) (*vaultAPI.Secret, *model.RksError) {
 	url := fmt.Sprintf("/auth/token/create/%s-%s", group, nodeID)
 	auth, err := v.Logical().Write(url, map[string]interface{}{})

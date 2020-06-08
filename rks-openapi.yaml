@@ -234,14 +234,14 @@ paths:
       operationId: revokeNode
       parameters:
         - $ref: '#/components/parameters/groupname'
-        - $ref: '#/components/parameters/nodeId'
+        - $ref: '#/components/parameters/nodeIdPath'
       responses:
         '204':
           description: Node successfully deleted
         '403':
           description: "Forbidden. Invalid X-Vault-Token"
         '404':
-          description: Group or node not found
+          description: Group not found
   '/rks/v1/group/{groupname}/secrets':
     get:
       summary: Get secrets associated with **groupname**
@@ -319,7 +319,7 @@ paths:
         - RKS Node Setup
       operationId: registerNode
       parameters:
-        - $ref: '#/components/parameters/nodeId'
+        - $ref: '#/components/parameters/nodeIdHeader'
       responses:
         '201':
           description: Node successfully registered
@@ -482,7 +482,17 @@ components:
       schema:
         type: string
         example: "test.com"
-    nodeId:
+    nodeIdPath:
+      name: nodeId
+      in: path
+      required: true
+      description: |
+        **nodeID**
+      schema:
+        type: string
+        example: "8c03fb4a-007f-11ea-9383-0fd702e68c30"
+        pattern: "^[a-zA-Z0-9\\-]{1,64}$"
+    nodeIdHeader:
       name: X-LCDN-nodeId
       in: header
       required: true
