@@ -449,27 +449,31 @@ class TestRKSAdministrationApi(object):
 
         secret = secret_api.get_secret("test.com")
 
-        assert secret.data != None
-        assert secret.data.certificate != None
-        assert secret.data.private_key != None
-        assert secret.data.meta != None
+        assert secret.data != None, "revoke failed"
+        assert secret.data.certificate != None, "revoke failed"
+        assert secret.data.private_key != None, "revoke failed"
+        assert secret.data.meta != None, "revoke failed"
 
         _, status, headers = admin_api.revoke_node_with_http_info("fakecdn1", "1")
 
-        assert status == 204
+        assert status == 204, "revoke node does not return 204 as expected"
 
         try:
             secret = secret_api.get_secret("test.com")
         except ApiException as e:
-            assert e.status == 403
+            assert (
+                e.status == 403
+            ), "getting secret with revoked nodeToken does not return 403 as expected"
 
         # test revoke unknown nodeId
         _, status, headers = admin_api.revoke_node_with_http_info("fakecdn1", "10")
 
-        assert status == 204
+        assert status == 204, "revoke unknown nodeId does not return 204 as expected"
 
         with pytest.raises(ApiException) as ex:
             # test revoke unknown groupname nodeId
             admin_api.revoke_node("unknowngroupname", "1")
 
-        assert ex.value.status == 404
+        assert (
+            ex.value.status == 404
+        ), "revoke nodeId from unknown group does not return 404 as expected"
