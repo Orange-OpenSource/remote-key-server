@@ -673,7 +673,6 @@ func RevokeNode(w http.ResponseWriter, r *http.Request) {
 	group := vars["groupname"]
 	nodeId := vars["nodeId"]
 
-	//customLogger := logger.NewLoggerFromContext(r.Context()).WithFields(log.Fields{"groupname": group, "fqdn": fqdn})
 	customlogger := logger.NewLoggerFromContext(r.Context()).WithFields(log.Fields{"groupname": group, "nodeId": nodeId})
 
 	vaultClient, err := vault.NewVaultClientFromHTTPRequest(r)
