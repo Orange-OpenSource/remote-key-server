@@ -675,9 +675,9 @@ func RevokeNode(w http.ResponseWriter, r *http.Request) {
 
 	customlogger := logger.NewLoggerFromContext(r.Context()).WithFields(log.Fields{"groupname": group, "nodeId": nodeId})
 
-	vaultClient, err := vault.NewVaultClientFromHTTPRequest(r)
-	if err != nil {
-		err.HandleErr(r.Context(), w)
+	vaultClient, rksErr := vault.NewVaultClientFromHTTPRequest(r)
+	if rksErr != nil {
+		rksErr.HandleErr(r.Context(), w)
 		return
 	}
 	if exists, rksErr := vaultClient.GroupExists(group); rksErr != nil {
@@ -687,8 +687,8 @@ func RevokeNode(w http.ResponseWriter, r *http.Request) {
 		(&model.RksError{WrappedError: nil, Message: "Group not found", Code: 404}).HandleErr(r.Context(), w)
 		return
 	}
-	if err = vaultClient.RevokeNodeToken(group, nodeId); err != nil {
-		err.HandleErr(r.Context(), w)
+	if rksErr = vaultClient.RevokeNodeToken(group, nodeId); rksErr != nil {
+		rksErr.HandleErr(r.Context(), w)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
