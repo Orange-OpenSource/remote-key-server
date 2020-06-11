@@ -223,12 +223,13 @@ paths:
   '/rks/v1/group/{groupname}/nodes/{nodeId}':
     delete:
       summary: Revoke a Node by revoking its token
-      description: revoke token for node of **groupname** with nodeId like **X-LCDN-nodeId**,  
-        **adminToken** is used as X-Vault-Token for authentication. Note that this call will
-       only revoke Node Token, that's to say, if you want to disallow this node to register again,
-       there is two ways. 
-       Makes callback url answer "40X" for this nodeId
-       Renew grouptoken and spread it to all nodes, execept this one 
+      description: |
+        revoke the **nodeToken** for a node part of group **groupname** with nodeId **X-LCDN-nodeId**, 
+        **adminToken** is used as X-Vault-Token for authentication.
+        Note that this call will revoke the **nodeToken** but won't forbid the node to register again. 
+        To forbid node registration there are two ways:
+        Make group manager callback url answer "40X" for this nodeId
+        Renew the group grouptoken and spread it to all nodes, except this one 
       tags:
         - RKS Administration
       operationId: revokeNode
@@ -640,4 +641,3 @@ components:
                 +9xiOEcTNrlo9vuonkMoyiwDua6H90vv3sgBJ80WDTn6sW/SXRTwDbE8Dn9ODv65
                 adVJ9a+aAf+SYT8HpMNezvro
                 -----END PRIVATE KEY-----
-
