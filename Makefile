@@ -52,7 +52,7 @@ start-docker-mock-callback-server: docker-network clean-docker-mock-callback-ser
 	docker run --network=${NETWORK} --name=mock-callback-server -p 8081:8081 -d mock-callback-server:test
 
 .PHONY: start-rks-prometheus
-start-docker-rks-prometheus:
+start-docker-rks-prometheus: docker-network clean-docker-rks-prometheus
 	docker run --network=${NETWORK} --name rks-prometheus -p 9091:9090 -v ${PWD}/scripts/prometheus.yml:/etc/prometheus/prometheus.yml -d prom/prometheus:v2.11.1
 
 clean-docker-%:
