@@ -245,4 +245,10 @@ var routes = map[string]Route{"Index": {"GET", "/", false, Index}, "Login": {
 		false,
 		node.RegisterNode,
 	},
+	"RevokeNode": {
+		strings.ToUpper("Delete"),
+		"/rks/v1/group/{groupname:[a-zA-Z0-9\\-]{1,64}}/nodes/{nodeId}",
+		false,
+		admin.RevokeNode,
+	},
 }

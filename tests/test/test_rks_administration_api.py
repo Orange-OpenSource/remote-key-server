@@ -435,3 +435,45 @@ class TestRKSAdministrationApi(object):
         with pytest.raises(ApiException) as excinfo:
             group_names = admin_api.get_secret_groups("testnotexist.com")
         assert excinfo.value.status == 404
+
+    def test_revoke_node(
+        self,
+        admin_api,
+        secret_api,
+        node_token,
+        associate_dot_com_group,
+        test_dot_com_secret,
+    ):
+
+        secret_api.api_client.configuration.api_key["X-Vault-Token"] = node_token
+
+        secret = secret_api.get_secret("test.com")
+
+        assert secret.data != None, "revoke failed"
+        assert secret.data.certificate != None, "revoke failed"
+        assert secret.data.private_key != None, "revoke failed"
+        assert secret.data.meta != None, "revoke failed"
+
+        _, status, headers = admin_api.revoke_node_with_http_info("fakecdn1", "1")
+
+        assert status == 204, "revoke node does not return 204 as expected"
+
+        try:
+            secret = secret_api.get_secret("test.com")
+        except ApiException as e:
+            assert (
+                e.status == 403
+            ), "getting secret with revoked nodeToken does not return 403 as expected"
+
+        # test revoke unknown nodeId
+        _, status, headers = admin_api.revoke_node_with_http_info("fakecdn1", "10")
+
+        assert status == 204, "revoke unknown nodeId does not return 204 as expected"
+
+        with pytest.raises(ApiException) as ex:
+            # test revoke unknown groupname nodeId
+            admin_api.revoke_node("unknowngroupname", "1")
+
+        assert (
+            ex.value.status == 404
+        ), "revoke nodeId from unknown group does not return 404 as expected"

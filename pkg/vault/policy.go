@@ -58,6 +58,10 @@ path "sys/policies/*" {
   capabilities = ["create","update","read","delete"]
 }
 
+path "sys/leases/revoke-prefix/auth/token/*" {
+  capabilities = ["sudo","create","update","read","delete"]
+}
+
 path "auth/token/lookup-self" {
   capabilities = ["read"]
 }

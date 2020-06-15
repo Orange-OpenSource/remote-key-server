@@ -667,3 +667,30 @@ func GetGroupConfig(w http.ResponseWriter, r *http.Request) {
 	}
 	logger.WithResponseStatus(customLogger, w).Info("get group config")
 }
+
+func RevokeNode(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	group := vars["groupname"]
+	nodeId := vars["nodeId"]
+
+	customlogger := logger.NewLoggerFromContext(r.Context()).WithFields(log.Fields{"groupname": group, "nodeId": nodeId})
+
+	vaultClient, rksErr := vault.NewVaultClientFromHTTPRequest(r)
+	if rksErr != nil {
+		rksErr.HandleErr(r.Context(), w)
+		return
+	}
+	if exists, rksErr := vaultClient.GroupExists(group); rksErr != nil {
+		rksErr.HandleErr(r.Context(), w)
+		return
+	} else if !exists {
+		(&model.RksError{WrappedError: nil, Message: "Group not found", Code: 404}).HandleErr(r.Context(), w)
+		return
+	}
+	if rksErr = vaultClient.RevokeNodeToken(group, nodeId); rksErr != nil {
+		rksErr.HandleErr(r.Context(), w)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+	customlogger.Info("revoke node")
+}

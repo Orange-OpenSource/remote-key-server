@@ -220,6 +220,29 @@ paths:
           description: "Forbidden. Invalid X-Vault-Token"
         '404':
           description: Group not found
+  '/rks/v1/group/{groupname}/nodes/{nodeId}':
+    delete:
+      summary: Revoke a Node by revoking its token
+      description: |
+        revoke the **nodeToken** for a node part of group **groupname** with nodeId **X-LCDN-nodeId**, 
+        **adminToken** is used as X-Vault-Token for authentication.
+        Note that this call will revoke the **nodeToken** but won't forbid the node to register again. 
+        To forbid node registration there are two ways:
+        Make group manager callback url answer "40X" for this nodeId
+        Renew the group grouptoken and spread it to all nodes, except this one 
+      tags:
+        - RKS Administration
+      operationId: revokeNode
+      parameters:
+        - $ref: '#/components/parameters/groupname'
+        - $ref: '#/components/parameters/nodeIdPath'
+      responses:
+        '204':
+          description: Node successfully deleted
+        '403':
+          description: "Forbidden. Invalid X-Vault-Token"
+        '404':
+          description: Group not found
   '/rks/v1/group/{groupname}/secrets':
     get:
       summary: Get secrets associated with **groupname**
@@ -297,7 +320,7 @@ paths:
         - RKS Node Setup
       operationId: registerNode
       parameters:
-        - $ref: '#/components/parameters/nodeId'
+        - $ref: '#/components/parameters/nodeIdHeader'
       responses:
         '201':
           description: Node successfully registered
@@ -460,7 +483,17 @@ components:
       schema:
         type: string
         example: "test.com"
-    nodeId:
+    nodeIdPath:
+      name: nodeId
+      in: path
+      required: true
+      description: |
+        **nodeID**
+      schema:
+        type: string
+        example: "8c03fb4a-007f-11ea-9383-0fd702e68c30"
+        pattern: "^[a-zA-Z0-9\\-]{1,64}$"
+    nodeIdHeader:
       name: X-LCDN-nodeId
       in: header
       required: true
@@ -608,4 +641,3 @@ components:
                 +9xiOEcTNrlo9vuonkMoyiwDua6H90vv3sgBJ80WDTn6sW/SXRTwDbE8Dn9ODv65
                 adVJ9a+aAf+SYT8HpMNezvro
                 -----END PRIVATE KEY-----
-
