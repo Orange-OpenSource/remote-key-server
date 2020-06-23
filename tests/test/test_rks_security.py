@@ -84,7 +84,6 @@ class TestRKSSecurity(object):
         )
         assert response.status_code == 404
 
-    @pytest.mark.selected
     def test_create_secret_wrong_schema(self, rks_url, admin_api):
         secret = json.dumps(
             {

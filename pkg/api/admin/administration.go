@@ -621,7 +621,7 @@ func UpdateGroupToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//write new grouptoken for group
-	if rksErr := vaultClient.WriteGroupToken(group, groupToken); rksErr != nil {
+	if rksErr := vaultClient.WriteGroupToken(group, newGroupToken); rksErr != nil {
 		rksErr.HandleErr(r.Context(), w)
 		return
 	}
