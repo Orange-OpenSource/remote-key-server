@@ -251,9 +251,7 @@ class TestRKSAdministrationApi(object):
         admin_api.api_client.configuration.api_key["X-Vault-Token"] = utils.ADMIN_TOKEN
 
     def test_get_group(self, admin_api, group_token):
-        """Test case for update_group
-
-        Update a Group of Nodes to update registration information
+        """Test case for get_group
         """
 
         group_reg_info, status, headers = admin_api.get_group_with_http_info("fakecdn1")
@@ -298,10 +296,16 @@ class TestRKSAdministrationApi(object):
         # reset admin_api with root token and delete group
         admin_api.api_client.configuration.api_key["X-Vault-Token"] = utils.ADMIN_TOKEN
 
-    def test_delete_group(self, admin_api):
-
-        # create group to delete it
-        admin_api.create_group("fakecdn3", utils.group_reg_info)
+    def test_delete_group(
+        self,
+        admin_api,
+        group_token,
+        node_setup_api,
+        node_token,
+        secret_api,
+        test_dot_com_secret,
+        associate_dot_com_group,
+    ):
 
         # normal test case (status==204) already tested on test_create_group and called in group_token fixture
 
@@ -310,7 +314,7 @@ class TestRKSAdministrationApi(object):
 
         with pytest.raises(ApiException) as excinfo:
             response, status, headers = admin_api.delete_group_with_http_info(
-                "fakecdn3"
+                "fakecdn1"
             )
         assert (
             excinfo.value.status == 403
@@ -328,8 +332,41 @@ class TestRKSAdministrationApi(object):
         ), "Invalid groupName does not return not found (must return 404)"
 
         # finally delete normally it
-        response, status, headers = admin_api.delete_group_with_http_info("fakecdn3")
+        response, status, headers = admin_api.delete_group_with_http_info("fakecdn1")
         assert status == 204, "Incorrect status code on delete (must return 204)"
+
+        # Test group_token has correctly been revoked
+        # in trying to register node with it
+
+        node_setup_api.api_client.configuration.api_key[
+            "X-Vault-Token"
+        ] = group_token.group_token
+
+        with pytest.raises(ApiException) as excinfo:
+            (
+                nodeToken,
+                responseStatus,
+                headers,
+            ) = node_setup_api.register_node_with_http_info(
+                "1", _return_http_data_only=False
+            )
+        assert excinfo.value.status == 403
+
+        # Test node_token have been revoked too (as childs of group_token)
+        # so that node can't get secret anymore
+        secret_api.api_client.configuration.api_key["X-Vault-Token"] = node_token
+        with pytest.raises(ApiException) as excinfo:
+            secret, responseStatus, headers = secret_api.get_secret("test.com")
+        assert excinfo.value.status == 403
+
+        # Test all group datas have been deleted
+        with pytest.raises(ApiException) as excinfo:
+            group_reg_info = admin_api.get_group_config("fakecdn1")
+        assert excinfo.value.status == 404
+
+        with pytest.raises(ApiException) as excinfo:
+            grouptoken = admin_api.get_group_token("fakecdn1")
+        assert excinfo.value.status == 404
 
     def test_multiple_init(self, init_api, rks_url):
 
