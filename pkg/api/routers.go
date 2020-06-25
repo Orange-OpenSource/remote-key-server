@@ -44,7 +44,7 @@ func ContentEncodingCheckerMiddleWare(next http.Handler) http.Handler {
 
 func ContentTypeCheckerMiddleWare(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if (r.Method == "POST" || r.Method == "PUT") && HasJSONBody(r) {
+		if (r.Method == "POST" || r.Method == "PUT") && HasBody(r) {
 			contentType := strings.ToLower(r.Header.Get("Content-Type"))
 			if contentType != "application/json" {
 				rksErr := model.RksError{WrappedError: nil, Message: "Content-Type Header not valid", Code: 415}
@@ -56,12 +56,12 @@ func ContentTypeCheckerMiddleWare(next http.Handler) http.Handler {
 	})
 }
 
-// HasJSONBody checks if the provided request has a Body
+// HasBody checks if the provided request has a Body
 // A Go internal HTTP/2 bug results in a body non nil and non equals to http.NoBody in the http request
 // Therefore we need to check if the given body is empty or not
 // To do that we try to read one byte from the body and check if we have io.EOF
 // If we read a byte, we read the rest of the body and recompose one with the first byte and the rest
-func HasJSONBody(r *http.Request) bool {
+func HasBody(r *http.Request) bool {
 	if r.Body == nil || r.Body == http.NoBody {
 		return false
 	}
