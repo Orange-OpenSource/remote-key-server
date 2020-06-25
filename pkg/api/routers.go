@@ -27,6 +27,7 @@ import (
 	"github.com/Orange-OpenSource/remote-key-server/pkg/model"
 
 	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
 )
 
 func ContentEncodingCheckerMiddleWare(next http.Handler) http.Handler {
@@ -43,7 +44,7 @@ func ContentEncodingCheckerMiddleWare(next http.Handler) http.Handler {
 
 func ContentTypeCheckerMiddleWare(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if (r.Method == "POST" || r.Method == "PUT") && HasJsonBody(r) {
+		if (r.Method == "POST" || r.Method == "PUT") && HasJSONBody(r) {
 			contentType := strings.ToLower(r.Header.Get("Content-Type"))
 			if contentType != "application/json" {
 				rksErr := model.RksError{WrappedError: nil, Message: "Content-Type Header not valid", Code: 415}
@@ -55,8 +56,12 @@ func ContentTypeCheckerMiddleWare(next http.Handler) http.Handler {
 	})
 }
 
-func HasJsonBody(r *http.Request) bool {
-
+// HasJSONBody checks if the provided request has a Body
+// A Go internal HTTP/2 bug results in a body non nil and non equals to http.NoBody in the http request
+// Therefore we need to check if the given body is empty or not
+// To do that we try to read one byte from the body and check if we have io.EOF
+// If we read a byte, we read the rest of the body and recompose one with the first byte and the rest
+func HasJSONBody(r *http.Request) bool {
 	if r.Body == nil || r.Body == http.NoBody {
 		return false
 	}
@@ -67,6 +72,7 @@ func HasJsonBody(r *http.Request) bool {
 	if err == io.EOF { // No byte to read => No body
 		return false
 	} else if err != nil {
+		logrus.Error(err)
 		return true
 	}
 
@@ -74,8 +80,10 @@ func HasJsonBody(r *http.Request) bool {
 	// We read the rest of the body
 	restOfBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
+		logrus.Error(err)
 		return true
 	}
+	logrus.Info("Body:", string(restOfBody))
 	r.Body.Close() // must close once read
 
 	r.Body = ioutil.NopCloser(io.MultiReader(bytes.NewBuffer(firstByte), bytes.NewBuffer(restOfBody))) // Recompose body from the first byte read and the rest of the body
@@ -83,40 +91,16 @@ func HasJsonBody(r *http.Request) bool {
 	return true
 }
 
-// disallow body in requests who don't need it (according to the specs)
-// A HTTP/2 bug results in a body non nil and non equals to http.NoBody in the http request
-// Therefore we need to check if the given body is empty or not
-// To do that we try to read one byte from the body and check if we have io.EOF
-func RouteWithoutJsonBody(r *http.Request, rm *mux.RouteMatch) bool {
-
-	return !HasJsonBody(r)
-
-}
-
-func RouteWithJsonBody(r *http.Request, rm *mux.RouteMatch) bool {
-	return !RouteWithoutJsonBody(r, rm)
-}
-
 func NewApiRouter(baseRouter *mux.Router) {
 	router := baseRouter
 	for key, route := range routes {
 		handler := route.HandlerFunc
 
-		if route.NeedJsonBody {
-			router.
-				Methods(route.Method).
-				Path(route.Pattern).
-				MatcherFunc(RouteWithJsonBody).
-				Name(key).
-				Handler(handler)
-		} else {
-			router.
-				Methods(route.Method).
-				Path(route.Pattern).
-				MatcherFunc(RouteWithoutJsonBody).
-				Name(key).
-				Handler(handler)
-		}
+		router.
+			Methods(route.Method).
+			Path(route.Pattern).
+			Name(key).
+			Handler(handler)
 	}
 }
 
@@ -125,130 +109,73 @@ func Index(w http.ResponseWriter, r *http.Request) {
 }
 
 type Route struct {
-	Method       string
-	Pattern      string
-	NeedJsonBody bool
-	HandlerFunc  http.HandlerFunc
+	Method      string
+	Pattern     string
+	HandlerFunc http.HandlerFunc
 }
 
-var routes = map[string]Route{"Index": {"GET", "/", false, Index}, "Login": {
-	strings.ToUpper("Post"),
-	"/rks/v1/admin/login",
-	true,
-	admin.Login,
-},
+var routes = map[string]Route{
+	"Index": {
+		"GET", "/", Index,
+	},
+	"Login": {
+		"POST", "/rks/v1/admin/login", admin.Login,
+	},
 	"AssociateSecret": {
-		strings.ToUpper("Post"),
-		"/rks/v1/group/{groupname:[a-zA-Z0-9\\-]{1,64}}/secrets/{fqdn}",
-		false,
-		admin.AssociateSecret,
+		"POST", "/rks/v1/group/{groupname:[a-zA-Z0-9\\-]{1,64}}/secrets/{fqdn}", admin.AssociateSecret,
 	},
 	"CreateGroup": {
-		strings.ToUpper("Post"),
-		"/rks/v1/group/{groupname:[a-zA-Z0-9\\-]{1,64}}",
-		true,
-		admin.CreateGroup,
+		"POST", "/rks/v1/group/{groupname:[a-zA-Z0-9\\-]{1,64}}", admin.CreateGroup,
 	},
 	"GetGroup": {
-		strings.ToUpper("Get"),
-		"/rks/v1/group/{groupname:[a-zA-Z0-9\\-]{1,64}}",
-		false,
-		admin.GetGroup,
+		"GET", "/rks/v1/group/{groupname:[a-zA-Z0-9\\-]{1,64}}", admin.GetGroup,
 	},
 	"UpdateGroup": {
-		strings.ToUpper("Put"),
-		"/rks/v1/group/{groupname:[a-zA-Z0-9\\-]{1,64}}",
-		true,
-		admin.UpdateGroup,
+		"PUT", "/rks/v1/group/{groupname:[a-zA-Z0-9\\-]{1,64}}", admin.UpdateGroup,
 	},
 	"CreateSecret": {
-		strings.ToUpper("Post"),
-		"/rks/v1/secret/{fqdn}",
-		true,
-		admin.CreateSecret,
+		"POST", "/rks/v1/secret/{fqdn}", admin.CreateSecret,
 	},
 	"DeleteGroup": {
-		strings.ToUpper("Delete"),
-		"/rks/v1/group/{groupname:[a-zA-Z0-9\\-]{1,64}}",
-		false,
-		admin.DeleteGroup,
+		"DELETE", "/rks/v1/group/{groupname:[a-zA-Z0-9\\-]{1,64}}", admin.DeleteGroup,
 	},
 	"DeleteSecret": {
-		strings.ToUpper("Delete"),
-		"/rks/v1/secret/{fqdn}",
-		false,
-		admin.DeleteSecret,
+		"DELETE", "/rks/v1/secret/{fqdn}", admin.DeleteSecret,
 	},
 	"DissociateSecret": {
-		strings.ToUpper("Delete"),
-		"/rks/v1/group/{groupname:[a-zA-Z0-9\\-]{1,64}}/secrets/{fqdn}",
-		false,
-		admin.DissociateSecret,
+		"DELETE", "/rks/v1/group/{groupname:[a-zA-Z0-9\\-]{1,64}}/secrets/{fqdn}", admin.DissociateSecret,
 	},
 	"GetGroupConfig": {
-		strings.ToUpper("Get"),
-		"/rks/v1/group/{groupname:[a-zA-Z0-9\\-]{1,64}}/config",
-		false,
-		admin.GetGroupConfig,
+		"GET", "/rks/v1/group/{groupname:[a-zA-Z0-9\\-]{1,64}}/config", admin.GetGroupConfig,
 	},
 	"GetGroupSecrets": {
-		strings.ToUpper("Get"),
-		"/rks/v1/group/{groupname:[a-zA-Z0-9\\-]{1,64}}/secrets",
-		false,
-		admin.GetGroupSecrets,
+		"GET", "/rks/v1/group/{groupname:[a-zA-Z0-9\\-]{1,64}}/secrets", admin.GetGroupSecrets,
 	},
 	"GetGroupToken": {
-		strings.ToUpper("Get"),
-		"/rks/v1/group/{groupname:[a-zA-Z0-9\\-]{1,64}}/grouptoken",
-		false,
-		admin.GetGroupToken,
+		"GET", "/rks/v1/group/{groupname:[a-zA-Z0-9\\-]{1,64}}/grouptoken", admin.GetGroupToken,
 	},
 	"UpdateGroupToken": {
-		strings.ToUpper("Put"),
-		"/rks/v1/group/{groupname:[a-zA-Z0-9\\-]{1,64}}/grouptoken",
-		false,
-		admin.UpdateGroupToken,
+		"PUT", "/rks/v1/group/{groupname:[a-zA-Z0-9\\-]{1,64}}/grouptoken", admin.UpdateGroupToken,
 	},
 	"GetSecretGroups": {
-		strings.ToUpper("Get"),
-		"/rks/v1/secret/{fqdn}/groups",
-		false,
-		admin.GetSecretGroups,
+		"GET", "/rks/v1/secret/{fqdn}/groups", admin.GetSecretGroups,
 	},
 	"InitRKS": {
-		strings.ToUpper("Post"),
-		"/rks/v1/init",
-		false,
-		initialize.InitRKS,
+		"POST", "/rks/v1/init", initialize.InitRKS,
 	},
 	"GetSecret": {
-		strings.ToUpper("Get"),
-		"/rks/v1/secret/{fqdn}",
-		false,
-		secret.GetSecret,
+		"GET", "/rks/v1/secret/{fqdn}", secret.GetSecret,
 	},
 	"UpdateSecret": {
-		strings.ToUpper("Put"),
-		"/rks/v1/secret/{fqdn}",
-		true,
-		admin.UpdateSecret,
+		"PUT", "/rks/v1/secret/{fqdn}", admin.UpdateSecret,
 	},
 	"RenewToken": {
-		strings.ToUpper("Post"),
-		"/rks/v1/auth/token/renew-self",
-		false,
-		node.RenewToken,
+		"POST", "/rks/v1/auth/token/renew-self", node.RenewToken,
 	},
 	"RegisterNode": {
-		strings.ToUpper("Post"),
-		"/rks/v1/node",
-		false,
-		node.RegisterNode,
+		"POST", "/rks/v1/node", node.RegisterNode,
 	},
 	"RevokeNode": {
-		strings.ToUpper("Delete"),
-		"/rks/v1/group/{groupname:[a-zA-Z0-9\\-]{1,64}}/nodes/{nodeId}",
-		false,
-		admin.RevokeNode,
+		"DELETE", "/rks/v1/group/{groupname:[a-zA-Z0-9\\-]{1,64}}/nodes/{nodeId}", admin.RevokeNode,
 	},
 }

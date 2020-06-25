@@ -50,39 +50,40 @@ class TestRKSSecurity(object):
 
         assert response.status_code == 400
 
-    def test_get_secret_with_body(
-        self,
-        rks_url,
-        secret_api,
-        node_token,
-        test_dot_com_secret,
-        associate_dot_com_group,
-    ):
-        headers = {"X-Vault-Token": node_token, "Content-Type": "application/json"}
+    # see issue https://github.com/Orange-OpenSource/remote-key-server/issues/40
+    # def test_get_secret_with_body(
+    #    self,
+    #    rks_url,
+    #    secret_api,
+    #    node_token,
+    #    test_dot_com_secret,
+    #    associate_dot_com_group,
+    # ):
+    #    headers = {"X-Vault-Token": node_token, "Content-Type": "application/json"}
 
-        data = {"testdata": "nothingtodohere"}
-        response = requests.get(
-            rks_url + "/rks/v1/secret/test.com",
-            headers=headers,
-            verify=False,
-            data=json.dumps(data),
-        )
-        assert response.status_code == 404
+    #    data = {"testdata": "nothingtodohere"}
+    #    response = requests.get(
+    #        rks_url + "/rks/v1/secret/test.com",
+    #        headers=headers,
+    #        verify=False,
+    #        data=json.dumps(data),
+    #    )
+    #    assert response.status_code == 404
 
-    def test_init_with_body(self, rks_url):
-        headers = {
-            "X-Vault-Token": utils.ADMIN_TOKEN,
-            # "Content-Type": "application/json",
-        }
-        data = {"testdata": "nothingtodohere"}
+    # def test_init_with_body(self, rks_url):
+    #    headers = {
+    #        "X-Vault-Token": utils.ADMIN_TOKEN,
+    #        # "Content-Type": "application/json",
+    #    }
+    #    data = {"testdata": "nothingtodohere"}
 
-        response = requests.post(
-            rks_url + "/rks/v1/init",
-            headers=headers,
-            data=json.dumps(data),
-            verify=False,
-        )
-        assert response.status_code == 404
+    #    response = requests.post(
+    #        rks_url + "/rks/v1/init",
+    #        headers=headers,
+    #        data=json.dumps(data),
+    #        verify=False,
+    #    )
+    #    assert response.status_code == 404
 
     def test_create_secret_wrong_schema(self, rks_url, admin_api):
         secret = json.dumps(
