@@ -4,7 +4,7 @@ NETWORK := rks# Can switch to bridge to use default docker network
 RKS_IP = $(shell docker inspect rks-server | jq -r ".[].NetworkSettings.Networks.${NETWORK}.IPAddress")
 HTTP_PROXY_HOST = $(shell echo ${http_proxy} | sed 's/http:\/\/\(.*\):\([0-9]*\)\//\1/g' )
 HTTP_PROXY_PORT = $(shell echo ${http_proxy} | sed 's/http:\/\/\(.*\):\([0-9]*\)\//\2/g' )
-SERVICES := rks-consul rks-vault rks-server mock-callback-server
+SERVICES := rks-prometheus rks-grafana rks-consul rks-vault rks-server mock-callback-server
 SUDO = $(shell if type sudo > /dev/null; then echo sudo; else echo; fi) # Use sudo for root command if available
 
 .DEFAULT_GOAL=help
@@ -15,7 +15,7 @@ demo:
 
 # ----- Build and Test -----
 .PHONY: dev-env
-dev-env: docker-network $(addprefix start-docker-, $(SERVICES)) ## Start dockerized dev environment consisting of rks, vault, consul and mock-callback-server
+dev-env: docker-network $(addprefix start-docker-, $(SERVICES)) ## Start dockerized dev environment consisting of rks, vault, consul, mock-callback-server and prometheus
 
 .PHONY: clean-dev-env
 clean-dev-env: $(addprefix clean-docker-, $(SERVICES)) ## Shutdown dev environment docker
@@ -33,7 +33,7 @@ test: tests/rksclient dev-env ## Launch rks-server tests using python rks genera
 
 .PHONY: start-docker-rks-consul
 start-docker-rks-consul: docker-network clean-docker-rks-consul
-	docker run --network=${NETWORK} -d --name=rks-consul -p 8500:8500 -e CONSUL_BIND_INTERFACE=eth0 consul:1.6.1
+	docker run --network=${NETWORK} -v ${PWD}/scripts/consul.hcl:/etc/consul.d/consul.hcl -d --name=rks-consul -p 8500:8500 -e CONSUL_BIND_INTERFACE=eth0 consul:1.6.1 agent -dev -config-dir=/etc/consul.d/
 
 .PHONY: start-docker-rks-vault
 start-docker-rks-vault: docker-network clean-docker-rks-vault
@@ -50,6 +50,14 @@ start-docker-rks-server: docker-network clean-docker-rks-server
 start-docker-mock-callback-server: docker-network clean-docker-mock-callback-server
 	docker build -f ./tests/mock-callback-server/Dockerfile --build-arg=http_proxy=${http_proxy} --build-arg=https_proxy=${https_proxy} -t mock-callback-server:test ./tests/ > /dev/null
 	docker run --network=${NETWORK} --name=mock-callback-server -p 8081:8081 -d mock-callback-server:test
+
+.PHONY: start-rks-prometheus
+start-docker-rks-prometheus: docker-network clean-docker-rks-prometheus
+	-docker run --network=${NETWORK} --name rks-prometheus -p 9091:9090 -v ${PWD}/scripts/prometheus.yml:/etc/prometheus/prometheus.yml -d prom/prometheus:v2.11.1
+
+.PHONY: start-rks-grafana
+start-docker-rks-grafana: docker-network
+	-docker run --network=${NETWORK} --name=rks-grafana -p 3000:3000 -v ${PWD}/scripts/grafana_datasource.yaml:/etc/grafana/provisioning/datasources/gf_ds.yaml -v ${PWD}/scripts/grafana_dashboard_config.yaml:/etc/grafana/provisioning/dashboards/gf_dash_cfg.yaml -v ${PWD}/scripts/grafana_rks_dashboard.json:/var/lib/grafana/dashboards/rks.json -e "GF_SECURITY_ADMIN_PASSWORD=rks" -d grafana/grafana:7.0.3
 
 clean-docker-%:
 	-docker rm -f $* > /dev/null

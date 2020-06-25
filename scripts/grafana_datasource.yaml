@@ -1,0 +1,17 @@
+---
+# config file version
+apiVersion: 1
+
+# list of datasources to insert/update depending
+# what's available in the database
+datasources:
+  - name: Prometheus
+    # <string, required> datasource type. Required
+    type: prometheus
+    access: proxy
+    url: http://rks-prometheus:9090
+    version: 1
+    # <bool> allow users to edit datasources from the UI.
+    editable: true
+    jsonData:
+      timeInterval: "5s"

@@ -1,0 +1,26 @@
+---
+scrape_configs:
+  - job_name: rks
+    scrape_interval: 5s
+    static_configs:
+      - targets:
+          - rks-server:8080
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
+  - job_name: vault
+    metrics_path: "/v1/sys/metrics"
+    scrape_interval: 5s
+    params:
+      format: ['prometheus']
+    scheme: http
+    static_configs:
+      - targets: ['rks-vault:8200']
+  - job_name: consul
+    scrape_interval: 5s
+    metrics_path: "/v1/agent/metrics"
+    params:
+      format: ['prometheus']
+    scheme: http
+    static_configs:
+      - targets: ['rks-consul:8500']
