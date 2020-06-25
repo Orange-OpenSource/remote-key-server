@@ -4,7 +4,7 @@ NETWORK := rks# Can switch to bridge to use default docker network
 RKS_IP = $(shell docker inspect rks-server | jq -r ".[].NetworkSettings.Networks.${NETWORK}.IPAddress")
 HTTP_PROXY_HOST = $(shell echo ${http_proxy} | sed 's/http:\/\/\(.*\):\([0-9]*\)\//\1/g' )
 HTTP_PROXY_PORT = $(shell echo ${http_proxy} | sed 's/http:\/\/\(.*\):\([0-9]*\)\//\2/g' )
-SERVICES := rks-prometheus rks-consul rks-vault rks-server mock-callback-server
+SERVICES := rks-prometheus rks-grafana rks-consul rks-vault rks-server mock-callback-server
 SUDO = $(shell if type sudo > /dev/null; then echo sudo; else echo; fi) # Use sudo for root command if available
 
 .DEFAULT_GOAL=help
@@ -53,7 +53,11 @@ start-docker-mock-callback-server: docker-network clean-docker-mock-callback-ser
 
 .PHONY: start-rks-prometheus
 start-docker-rks-prometheus: docker-network clean-docker-rks-prometheus
-	docker run --network=${NETWORK} --name rks-prometheus -p 9091:9090 -v ${PWD}/scripts/prometheus.yml:/etc/prometheus/prometheus.yml -d prom/prometheus:v2.11.1
+	-docker run --network=${NETWORK} --name rks-prometheus -p 9091:9090 -v ${PWD}/scripts/prometheus.yml:/etc/prometheus/prometheus.yml -d prom/prometheus:v2.11.1
+
+.PHONY: start-rks-grafana
+start-docker-rks-grafana: docker-network
+	-docker run --network=${NETWORK} --name=rks-grafana -p 3000:3000 -v ${PWD}/scripts/grafana_datasource.yaml:/etc/grafana/provisioning/datasources/gf_ds.yaml -v ${PWD}/scripts/grafana_dashboard_config.yaml:/etc/grafana/provisioning/dashboards/gf_dash_cfg.yaml -v ${PWD}/scripts/grafana_rks_dashboard.json:/var/lib/grafana/dashboards/rks.json -e "GF_SECURITY_ADMIN_PASSWORD=rks" -d grafana/grafana:7.0.3
 
 clean-docker-%:
 	-docker rm -f $* > /dev/null
