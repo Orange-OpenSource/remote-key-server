@@ -384,8 +384,9 @@ func (v *Vault) CreateGroupToken(group string) (*model.GroupToken, *model.RksErr
 	return &groupToken, nil
 }
 
-func (v *Vault) DeleteGroupTokenAndPolicies(group string, groupToken *model.GroupToken) *model.RksError {
-	if err := v.RevokeGroupToken(groupToken); err != nil {
+func (v *Vault) DeleteGroupTokenAndPolicies(group string) *model.RksError {
+	//Revoke All token created against group token roke, and all child (node token)
+	if err := v.RevokeGroupToken(group); err != nil {
 		return err
 	}
 	if err := v.Sys().DeletePolicy("addToken-" + group); err != nil {
@@ -402,9 +403,12 @@ func (v *Vault) DeleteGroupTokenAndPolicies(group string, groupToken *model.Grou
 	return nil
 }
 
-func (v *Vault) RevokeGroupToken(groupToken *model.GroupToken) *model.RksError {
-	if err := v.Auth().Token().RevokeTree(groupToken.GroupToken); err != nil {
-		return RKSErrFromVaultErr(err, "revoke group token")
+func (v *Vault) RevokeGroupToken(group string) *model.RksError {
+	url := fmt.Sprintf("/auth/token/create/addToken-%s", group)
+
+	err := v.Sys().RevokePrefix(url)
+	if err != nil {
+		return RKSErrFromVaultErr(err, fmt.Sprintf("Couldn't Revoke Token for group %s ", group))
 	}
 	return nil
 }

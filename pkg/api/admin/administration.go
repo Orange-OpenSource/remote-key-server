@@ -207,15 +207,8 @@ func DeleteGroup(w http.ResponseWriter, r *http.Request) {
 		(&model.RksError{WrappedError: nil, Message: "Group not found", Code: 404}).HandleErr(r.Context(), w)
 		return
 	}
-
-	//Read Group token in vault
-	groupToken, rksErr := vaultClient.ReadGroupToken(group)
-	if rksErr != nil {
-		rksErr.HandleErr(r.Context(), w)
-		return
-	}
-
-	if rksErr = vaultClient.DeleteGroupTokenAndPolicies(group, groupToken); rksErr != nil {
+	//this also revoke grouptoken and all child node token
+	if rksErr = vaultClient.DeleteGroupTokenAndPolicies(group); rksErr != nil {
 		rksErr.HandleErr(r.Context(), w)
 		return
 	}
@@ -597,19 +590,8 @@ func UpdateGroupToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	groupToken, rksErr := vaultClient.ReadGroupToken(group)
-	if rksErr != nil {
-		rksErr.HandleErr(r.Context(), w)
-		return
-	}
-
-	newGroupToken, rksErr := vaultClient.CreateGroupToken(group)
-	if rksErr != nil {
-		rksErr.HandleErr(r.Context(), w)
-		return
-	}
 	//revoke old grouptoken (and all tree of nodeToken!
-	if rksErr := vaultClient.RevokeGroupToken(groupToken); err != nil {
+	if rksErr := vaultClient.RevokeGroupToken(group); err != nil {
 		rksErr.HandleErr(r.Context(), w)
 		return
 	}
@@ -619,9 +601,14 @@ func UpdateGroupToken(w http.ResponseWriter, r *http.Request) {
 		rksErr.HandleErr(r.Context(), w)
 		return
 	}
+	newGroupToken, rksErr := vaultClient.CreateGroupToken(group)
+	if rksErr != nil {
+		rksErr.HandleErr(r.Context(), w)
+		return
+	}
 
 	//write new grouptoken for group
-	if rksErr := vaultClient.WriteGroupToken(group, groupToken); rksErr != nil {
+	if rksErr := vaultClient.WriteGroupToken(group, newGroupToken); rksErr != nil {
 		rksErr.HandleErr(r.Context(), w)
 		return
 	}
