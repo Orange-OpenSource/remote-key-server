@@ -9,10 +9,11 @@ COPY go.sum ./go.sum
 # Install dependencies before copying code and benefit from docker caching
 RUN go mod download
 
-COPY . .
+COPY ./cmd ./cmd
+COPY ./pkg ./pkg
 
 ENV CGO_ENABLED=0
-RUN go build -a -installsuffix cgo -o bin/rks ./cmd/remote-key-server/
+RUN go build -o bin/rks ./cmd/remote-key-server/
 
 FROM alpine:3.11.2 AS runtime
 LABEL name="RKS Server" \

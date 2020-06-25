@@ -9,15 +9,15 @@ COPY go.sum ./go.sum
 # Install dependencies before copying code and benefit from docker caching
 RUN go mod download
 
-COPY . .
-COPY main.go .
+COPY ./cmd ./cmd
+COPY ./pkg ./pkg
 
 ENV CGO_ENABLED=0
 
 # !!! Instrument binary with coverage probes
 # !!! On exit, the binary will leave a coverage file
 # !!! At -test.coverprofile /path/to/coverage/file
-RUN go test -c -covermode=count -coverpkg ./...  -o bin/rks
+RUN go test -c -covermode=count -o bin/rks -coverpkg=./... ./cmd/remote-key-server/
 
 FROM alpine:3.11.2 AS runtime
 LABEL name="RKS Server" \
@@ -25,12 +25,18 @@ LABEL name="RKS Server" \
       url="https://github.com/Orange-OpenSource/remote-key-server" \
       maintainer="glenn.feunteun@orange.com"
 
+WORKDIR /rks/
+
 RUN addgroup -g 1000 -S rks && \
   adduser -u 1000 -S rks -G rks
+
+RUN mkdir /rks/report && chown -R rks:rks /rks/
 
 USER rks
 
 COPY --from=build /rks/bin/rks ./rks
 COPY certs ./certs/
+
+VOLUME /rks/report
 EXPOSE 8080/tcp
 ENTRYPOINT ["./rks"]
