@@ -9,22 +9,22 @@
 
 Authoritative Vault and Consul deployment resources:
 
-- [Vault Reference Architecture](https://learn.hashicorp.com/vault/operations/ops-reference-architecture)
-- [Vault Deployment Guide](https://learn.hashicorp.com/vault/day-one/ops-deployment-guide)
-- [Vault Production Hardening](https://learn.hashicorp.com/vault/day-one/production-hardening)
-- [Consul Reference Architecture](https://learn.hashicorp.com/consul/datacenter-deploy/reference-architecture)
+- [Vault Reference Architecture][vault-reference-architecture]
+- [Vault Deployment Guide][vault-deployment-guide]
+- [Vault Production Hardening][vault-production-hardening]
+- [Consul Reference Architecture][consul-reference-architecture]
 
 # Network flows
 
-| Usage                      | Source        | Destination   | Protocol       | Port     |
-| ---                        | ---           | ---           | ---            | ---      |
-| Group Manager Registration | Group Manager | RKS           | HTTPS          | TCP/443  |
-| Client Node Registration   | Client Node   | RKS           | HTTPS          | TCP/443  |
-| Client Node Validation     | RKS           | Group Manager | HTTPS          | TCP/443? |
-| Client Node Secrets access | Client Node   | RKS           | HTTPS          | TCP/443  |
-| RKS Vault Access           | RKS           | Vault         | HTTPS          | TCP/8200 |
-| Consul Clustering          | Consul        | Consul        | RAFT           | TCP/8300 |
-| Vault Clustering           | Vault         | Vault         | Req Forwarding | TCP/8201 |
+| Usage                      | Source        | Destination   | Protocol           | Port     |
+| ---                        | ---           | ---           | ---                | ---      |
+| Group Manager Registration | Group Manager | RKS           | HTTPS              | TCP/443  |
+| Client Node Registration   | Client Node   | RKS           | HTTPS              | TCP/443  |
+| Client Node Validation     | RKS           | Group Manager | HTTPS              | TCP/443? |
+| Client Node Secrets access | Client Node   | RKS           | HTTPS              | TCP/443  |
+| RKS Vault Access           | RKS           | Vault         | HTTPS              | TCP/8200 |
+| Consul Clustering          | Consul        | Consul        | RAFT               | TCP/8300 |
+| Vault Clustering           | Vault         | Vault         | Request Forwarding | TCP/8201 |
 
 # Infrastructure
 
@@ -32,11 +32,13 @@ RKS can run on **bare metal** / **VM** / **containers** and has no hard dependen
 
 Our development setup starts each RKS component in a Docker container
 
-Our ansible deployment playbooks originally deployed RKS components inside Debian LXC containers provisionned on Proxmox lab cluster
-
-The ansible playbook can also deploy indifferently to: Alpine / Debian / Centos / RHEL machines (Bare metal or VMs)
+Our ansible deployment playbooks originally deployed RKS components inside Debian LXC containers provisionned on a Proxmox cluster
 
 RKS leverages Consul database to ensure fault tolerance. This requires 3 or more machines deployed to allow for at least one machine failure (See Architecture below)
+
+The Hashicorp recommended Consul infrastructure consists of 5 Consul instances spread across different availability zones so that the loss of an entire availability zone doesn't put the system down.
+
+We propose a smaller deployment footprint here tolerating the loss of 1 node but greater care must be taken depending on the use case.
 
 # Dimensioning
 
@@ -57,19 +59,24 @@ __Bandwidth consumption__: considering a let's encrypt secret, with its fullchai
 
 RKS storage requirement is low as we store only text objects (certificates/private keys)
 
-When 100 secrets are loaded, making a consul database snapshots result in a 1MB file.
+When 100 secrets are loaded, making a consul database snapshots result in a 1MB file. This should be done regularly to backup consul state.
 
-Loading 100 secrets into the RKS and running ~55 req/s for 30 minutes yields the following memory usage:
+Loading 100 secrets into the RKS on a single machine with 1 instance of the RKS, Vault and Consul and running ~55 req/s for 30 minutes yields the following memory usage:
 
 ![memory usage](./memory_use.png)
+
+A cumulated memory use of ~750MB.
 
 # Example deployment architecture diagram
 
 Load balancing can be done via DNS or using a hardware/software load balancer.
+Requests can be directed to any RKS instance available.
+Vault instances will forward client request to the currently elected Vault leader.
+This is not shown here to avoid cluttering the diagram.
+
+The RKS exposes a /healthz endpoint which can be queried to determine if the instance is healthy.
 
 Deployment is represented here on 3 "machines", virtual or bare metal. A deployment on a container orchestrator such as Kubernetes will differ.
-
-Vault instances will forward client request to the currently elected Vault leader. This is not shown here to avoid cluttering the diagram.
 
 ![architecture diagram](architecture.svg)
 
@@ -78,7 +85,7 @@ Vault instances will forward client request to the currently elected Vault leade
 @startuml
 
 cloud "management-network"  {
-  node "nodes-manager" as nm
+  node "group-manager" as gm
   node "server-3" {
     rectangle consul as c3
     rectangle vault as v3
@@ -118,7 +125,7 @@ v1 -> c1
 v2 -> c2
 v3 -> c3
 
-nm <-down-> r1: RKS setup
+gm <-down-> r1: RKS setup
 
 a1 -up-> lb: Get Secrets
 lb -up-> r1: Get Secrets
@@ -134,3 +141,8 @@ lb -up-> r1: Get Secrets
 @enduml
 ```
 -->
+
+[vault-reference-architecture]: https://learn.hashicorp.com/vault/operations/ops-reference-architecture
+[vault-deployment-guide]: https://learn.hashicorp.com/vault/day-one/ops-deployment-guide
+[vault-production-hardening]: https://learn.hashicorp.com/vault/day-one/production-hardening
+[consul-reference-architecture]: https://learn.hashicorp.com/consul/datacenter-deploy/reference-architecture
