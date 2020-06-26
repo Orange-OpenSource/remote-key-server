@@ -131,7 +131,6 @@ class TestRKSAdministrationApi(object):
         response, status, headers = admin_api.delete_group_with_http_info("fakecdn1")
         assert status == 204, "Delete group does not return 204 as expected"
 
-    @pytest.mark.selected
     def test_update_group_token(
         self,
         admin_api,

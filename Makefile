@@ -29,7 +29,7 @@ test: tests/rksclient dev-env ## Launch rks-server tests using python rks genera
 	docker build -f ./tests/Dockerfile --build-arg=http_proxy=${http_proxy} --build-arg=https_proxy=${https_proxy} -t rks-tests ./
 	docker run --network=${NETWORK} -e ROOT_TOKEN=$$(cat root_token) --add-host=rks.local:${RKS_IP} \
 		rks-tests tox -e dockertest -- \
-		-x -s --rks-url https://rks.local:8080 --vault-address http://rks-vault:8200 --https --admin-login admin-rks --admin-pwd 12345
+		-x --rks-url https://rks.local:8080 --vault-address http://rks-vault:8200 --https --admin-login admin-rks --admin-pwd 12345
 
 .PHONY: start-docker-rks-consul
 start-docker-rks-consul: docker-network clean-docker-rks-consul
