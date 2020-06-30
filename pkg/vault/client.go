@@ -41,8 +41,6 @@ type Configuration struct {
 // Configs the global config struct
 var Config Configuration
 
-type VaultOption func(v *Vault)
-
 type Vault struct {
 	*vaultAPI.Client
 	logger logrus.FieldLogger
@@ -63,10 +61,6 @@ func NewVaultClient(ctx context.Context, token string) (*Vault, *model.RksError)
 	vaultClient.SetToken(token)
 
 	vc := &Vault{Client: vaultClient, logger: logger.NewLoggerFromContext(ctx)}
-
-	//	for _, opt := range opts {
-	//		opt(vc)
-	//	}
 
 	return vc, nil
 }
