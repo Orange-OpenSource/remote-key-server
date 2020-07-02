@@ -15,6 +15,7 @@ package admin
 import (
 	"net/http"
 	"sort"
+	"time"
 
 	"github.com/Orange-OpenSource/remote-key-server/pkg/logger"
 	"github.com/Orange-OpenSource/remote-key-server/pkg/model"
@@ -404,7 +405,7 @@ func AssociateSecret(w http.ResponseWriter, r *http.Request) {
 
 	var groupSecrets *model.GroupSecrets
 
-	i := 0
+	retry_number := 0
 
 	for {
 		var version int
@@ -425,21 +426,12 @@ func AssociateSecret(w http.ResponseWriter, r *http.Request) {
 		sort.Strings(groupSecrets.Secrets)
 		rksErr = vaultClient.WriteGroupSecretList(group, groupSecrets, version)
 
-		if rksErr != nil {
-			statusCode, rksErr := vault.VaultStatusCodeFromRKSErr(rksErr)
-
-			switch {
-
-			case (statusCode == 400 && i <= 3):
-				break
-			case statusCode > 400:
-				rksErr.HandleErr(r.Context(), w)
-				return
-			}
-		} else {
+		if rksErr == nil {
+			// || retry_number < 4 {
 			break
 		}
-		i++
+		time.Sleep(1 * time.Second)
+		retry_number++
 
 	}
 
@@ -487,7 +479,7 @@ func DissociateSecret(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var groupSecrets *model.GroupSecrets
-	i := 3
+	retry_number := 0
 	for {
 		var version int
 		groupSecrets, version, rksErr = vaultClient.GetGroupSecretList(group)
@@ -507,21 +499,12 @@ func DissociateSecret(w http.ResponseWriter, r *http.Request) {
 		}
 		rksErr = vaultClient.WriteGroupSecretList(group, groupSecrets, version)
 
-		if rksErr != nil {
-			statusCode, rksErr := vault.VaultStatusCodeFromRKSErr(rksErr)
-
-			switch {
-
-			case (statusCode == 400 && i <= 3):
-				break
-			case statusCode > 400:
-				rksErr.HandleErr(r.Context(), w)
-				return
-			}
-		} else {
+		if rksErr == nil {
+			//|| retry_number < 4 {
 			break
 		}
-		i++
+		time.Sleep(1 * time.Second)
+		retry_number++
 	}
 	policy, err := utils.UpdateTemplatedPolicy(vault.GroupSecretAccessPolicy, groupSecrets.Secrets)
 	if err != nil {
