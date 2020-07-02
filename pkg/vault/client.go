@@ -44,7 +44,6 @@ var Config Configuration
 type Vault struct {
 	*vaultAPI.Client
 	logger logrus.FieldLogger
-	//	casOpt int
 }
 
 func NewVaultClient(ctx context.Context, token string) (*Vault, *model.RksError) {
@@ -80,6 +79,16 @@ func RKSErrFromVaultErr(err error, msg string) *model.RksError {
 		return &model.RksError{WrappedError: vaultErr, Message: msg + ": vault unauthorized", Code: 403}
 	}
 	return &model.RksError{WrappedError: err, Message: msg + ": vault internal error", Code: 500}
+}
+
+func VaultStatusCodeFromRKSErr(err *model.RksError) (int, *model.RksError) {
+	// Sometimes we need  to revert wrapping in order to activate a particular behavior at
+	// top level (api endpoint) depending on vault response status code (admin api)
+	vaultErr, ok := err.WrappedError.(*vaultAPI.ResponseError)
+	if !ok {
+		return 0, err
+	}
+	return vaultErr.StatusCode, nil
 }
 
 func (v *Vault) ReadSecret(path string) (*vaultAPI.Secret, *model.RksError) {

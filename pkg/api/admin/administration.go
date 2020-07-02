@@ -404,6 +404,8 @@ func AssociateSecret(w http.ResponseWriter, r *http.Request) {
 
 	var groupSecrets *model.GroupSecrets
 
+	i := 0
+
 	for {
 		var version int
 		groupSecrets, version, rksErr = vaultClient.GetGroupSecretList(group)
@@ -423,9 +425,21 @@ func AssociateSecret(w http.ResponseWriter, r *http.Request) {
 		sort.Strings(groupSecrets.Secrets)
 		rksErr = vaultClient.WriteGroupSecretList(group, groupSecrets, version)
 
-		if rksErr == nil {
+		if rksErr != nil {
+			statusCode, rksErr := vault.VaultStatusCodeFromRKSErr(rksErr)
+
+			switch {
+
+			case (statusCode == 400 && i <= 3):
+				break
+			case statusCode > 400:
+				rksErr.HandleErr(r.Context(), w)
+				return
+			}
+		} else {
 			break
 		}
+		i++
 
 	}
 
@@ -473,6 +487,7 @@ func DissociateSecret(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var groupSecrets *model.GroupSecrets
+	i := 3
 	for {
 		var version int
 		groupSecrets, version, rksErr = vaultClient.GetGroupSecretList(group)
@@ -491,9 +506,22 @@ func DissociateSecret(w http.ResponseWriter, r *http.Request) {
 			groupSecrets.Secrets = append(groupSecrets.Secrets[:fqdnIndex], groupSecrets.Secrets[fqdnIndex+1:]...)
 		}
 		rksErr = vaultClient.WriteGroupSecretList(group, groupSecrets, version)
-		if rksErr == nil {
+
+		if rksErr != nil {
+			statusCode, rksErr := vault.VaultStatusCodeFromRKSErr(rksErr)
+
+			switch {
+
+			case (statusCode == 400 && i <= 3):
+				break
+			case statusCode > 400:
+				rksErr.HandleErr(r.Context(), w)
+				return
+			}
+		} else {
 			break
 		}
+		i++
 	}
 	policy, err := utils.UpdateTemplatedPolicy(vault.GroupSecretAccessPolicy, groupSecrets.Secrets)
 	if err != nil {
