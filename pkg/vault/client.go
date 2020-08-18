@@ -164,6 +164,10 @@ func (v *Vault) WriteStructWithCas(path string, data interface{}, version int) *
 	}
 	_, err = v.Logical().Write(path, map[string]interface{}{"data": vaultData, "options": options})
 	if err != nil {
+		if vaultErr, ok := err.(*vaultAPI.ResponseError); ok && vaultErr.StatusCode == 400 {
+			return &model.RksError{WrappedError: err, Message: "Error while writing group secret list with cas, ressource may be locked, please retry later", Code: 423}
+
+		}
 		return RKSErrFromVaultErr(err, "write struct")
 	}
 

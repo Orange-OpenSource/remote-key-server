@@ -15,7 +15,6 @@ package admin
 import (
 	"net/http"
 	"sort"
-	"time"
 
 	"github.com/Orange-OpenSource/remote-key-server/pkg/logger"
 	"github.com/Orange-OpenSource/remote-key-server/pkg/model"
@@ -405,34 +404,26 @@ func AssociateSecret(w http.ResponseWriter, r *http.Request) {
 
 	var groupSecrets *model.GroupSecrets
 
-	retry_number := 0
+	var version int
+	groupSecrets, version, rksErr = vaultClient.GetGroupSecretList(group)
+	if rksErr != nil {
+		rksErr.HandleErr(r.Context(), w)
+		return
+	}
 
-	for {
-		var version int
-		groupSecrets, version, rksErr = vaultClient.GetGroupSecretList(group)
-		if rksErr != nil {
-			rksErr.HandleErr(r.Context(), w)
+	for _, secret := range groupSecrets.Secrets {
+		if secret == fqdn {
+			(&model.RksError{WrappedError: nil, Message: fqdn + "already associated to " + group, Code: 409}).HandleErr(r.Context(), w)
 			return
 		}
+	}
 
-		for _, secret := range groupSecrets.Secrets {
-			if secret == fqdn {
-				(&model.RksError{WrappedError: nil, Message: fqdn + "already associated to " + group, Code: 409}).HandleErr(r.Context(), w)
-				return
-			}
-		}
+	groupSecrets.Secrets = append(groupSecrets.Secrets, fqdn)
+	sort.Strings(groupSecrets.Secrets)
+	rksErr = vaultClient.WriteGroupSecretList(group, groupSecrets, version)
 
-		groupSecrets.Secrets = append(groupSecrets.Secrets, fqdn)
-		sort.Strings(groupSecrets.Secrets)
-		rksErr = vaultClient.WriteGroupSecretList(group, groupSecrets, version)
-
-		if rksErr == nil {
-			// || retry_number < 4 {
-			break
-		}
-		time.Sleep(1 * time.Second)
-		retry_number++
-
+	if rksErr != nil {
+		rksErr.HandleErr(r.Context(), w)
 	}
 
 	policy, err := utils.UpdateTemplatedPolicy(vault.GroupSecretAccessPolicy, groupSecrets.Secrets)
@@ -479,33 +470,28 @@ func DissociateSecret(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var groupSecrets *model.GroupSecrets
-	retry_number := 0
-	for {
-		var version int
-		groupSecrets, version, rksErr = vaultClient.GetGroupSecretList(group)
-		if rksErr != nil {
-			rksErr.HandleErr(r.Context(), w)
-			return
-		}
-		found := false
-		for _, secret := range groupSecrets.Secrets {
-			if secret == fqdn {
-				found = true
-			}
-		}
-		if found {
-			fqdnIndex := sort.SearchStrings(groupSecrets.Secrets, fqdn)
-			groupSecrets.Secrets = append(groupSecrets.Secrets[:fqdnIndex], groupSecrets.Secrets[fqdnIndex+1:]...)
-		}
-		rksErr = vaultClient.WriteGroupSecretList(group, groupSecrets, version)
-
-		if rksErr == nil {
-			//|| retry_number < 4 {
-			break
-		}
-		time.Sleep(1 * time.Second)
-		retry_number++
+	var version int
+	groupSecrets, version, rksErr = vaultClient.GetGroupSecretList(group)
+	if rksErr != nil {
+		rksErr.HandleErr(r.Context(), w)
+		return
 	}
+	found := false
+	for _, secret := range groupSecrets.Secrets {
+		if secret == fqdn {
+			found = true
+		}
+	}
+	if found {
+		fqdnIndex := sort.SearchStrings(groupSecrets.Secrets, fqdn)
+		groupSecrets.Secrets = append(groupSecrets.Secrets[:fqdnIndex], groupSecrets.Secrets[fqdnIndex+1:]...)
+	}
+	rksErr = vaultClient.WriteGroupSecretList(group, groupSecrets, version)
+
+	if rksErr != nil {
+		rksErr.HandleErr(r.Context(), w)
+	}
+
 	policy, err := utils.UpdateTemplatedPolicy(vault.GroupSecretAccessPolicy, groupSecrets.Secrets)
 	if err != nil {
 		(&model.RksError{WrappedError: err, Message: "couldn't update group secret access policy", Code: 500}).HandleErr(r.Context(), w)

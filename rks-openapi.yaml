@@ -285,6 +285,8 @@ paths:
           description: "Forbidden. Invalid X-Vault-Token"
         '404':
           description: Secret or groupName not Found
+        '423':
+          description: Secret list for this group is locked, please retry later
     delete:
       summary: Dissociate **fqdn** secret from **groupname**
       description: |
@@ -303,6 +305,8 @@ paths:
           description: "Forbidden. Invalid X-Vault-Token"
         '404':
           description: Secret or group not found
+        '423':
+          description: Secret list for this group is locked, please retry later
   '/rks/v1/node':
     post:
       summary: Register a Node

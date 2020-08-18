@@ -18,7 +18,12 @@ class AssociateThenGetSecret(SequentialTaskSet):
         global SECRET_LIST
         global GROUP_NAME
         global ADMIN_TOKEN
-        self.current_secret = SECRET_LIST[random.randint(0, len(SECRET_LIST) - 1)]
+        global RESCHEDULE_SECRET
+        if RESCHEDULE_SECRET:
+            self.current_secret = RESCHEDULE_SECRET
+            RESCHEDULE_SECRET = None
+        else:
+            self.current_secret = SECRET_LIST[random.randint(0, len(SECRET_LIST) - 1)]
         with self.client.post(
             f"/rks/v1/group/{GROUP_NAME}/secrets/{self.current_secret}",
             headers={"X-Vault-Token": ADMIN_TOKEN,},
@@ -27,6 +32,12 @@ class AssociateThenGetSecret(SequentialTaskSet):
         ) as response:
             if response.status_code == 409:
                 response.success()
+            if response.status_code == 423:
+                RESCHEDULE_SECRET = self.current_secret
+                response.success()
+                self.schedule_task(
+                    task_callable=self.associate_secret, first=True,
+                )
 
     @task
     def get_secret(self):
@@ -98,7 +109,7 @@ def get_admin_token() -> str:
 
 
 def create_group(admin_token: str):
-    group_name = uuid.uuid4() # Generate random group name
+    group_name = uuid.uuid4()  # Generate random group name
     response = requests.post(
         f"https://localhost:8080/rks/v1/group/{group_name}",
         headers={"X-Vault-Token": admin_token},
@@ -142,8 +153,9 @@ def push_all_secrets(admin_token: str, cert_directory: str) -> None:
 
 
 # I don't know how to pass parameters to the User classes
-# so global variables are used 
+# so global variables are used
 init_rks("../root_token")
 ADMIN_TOKEN = get_admin_token()
 GROUP_NAME, GROUP_TOKEN = create_group(ADMIN_TOKEN)
 SECRET_LIST = push_all_secrets(ADMIN_TOKEN, "../certs")
+RESCHEDULE_SECRET = None
