@@ -359,7 +359,7 @@ func GetGroupSecrets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	groupSecrets, err := vaultClient.GetGroupSecretList(group)
+	groupSecrets, _, err := vaultClient.GetGroupSecretList(group)
 	if err != nil {
 		err.HandleErr(r.Context(), w)
 		return
@@ -402,7 +402,10 @@ func AssociateSecret(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	groupSecrets, rksErr := vaultClient.GetGroupSecretList(group)
+	var groupSecrets *model.GroupSecrets
+
+	var version int
+	groupSecrets, version, rksErr = vaultClient.GetGroupSecretList(group)
 	if rksErr != nil {
 		rksErr.HandleErr(r.Context(), w)
 		return
@@ -417,8 +420,9 @@ func AssociateSecret(w http.ResponseWriter, r *http.Request) {
 
 	groupSecrets.Secrets = append(groupSecrets.Secrets, fqdn)
 	sort.Strings(groupSecrets.Secrets)
+	rksErr = vaultClient.WriteGroupSecretList(group, groupSecrets, version)
 
-	if rksErr := vaultClient.WriteGroupSecretList(group, groupSecrets); rksErr != nil {
+	if rksErr != nil {
 		rksErr.HandleErr(r.Context(), w)
 		return
 	}
@@ -466,12 +470,13 @@ func DissociateSecret(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	groupSecrets, rksErr := vaultClient.GetGroupSecretList(group)
+	var groupSecrets *model.GroupSecrets
+	var version int
+	groupSecrets, version, rksErr = vaultClient.GetGroupSecretList(group)
 	if rksErr != nil {
 		rksErr.HandleErr(r.Context(), w)
 		return
 	}
-
 	found := false
 	for _, secret := range groupSecrets.Secrets {
 		if secret == fqdn {
@@ -482,8 +487,9 @@ func DissociateSecret(w http.ResponseWriter, r *http.Request) {
 		fqdnIndex := sort.SearchStrings(groupSecrets.Secrets, fqdn)
 		groupSecrets.Secrets = append(groupSecrets.Secrets[:fqdnIndex], groupSecrets.Secrets[fqdnIndex+1:]...)
 	}
+	rksErr = vaultClient.WriteGroupSecretList(group, groupSecrets, version)
 
-	if rksErr := vaultClient.WriteGroupSecretList(group, groupSecrets); rksErr != nil {
+	if rksErr != nil {
 		rksErr.HandleErr(r.Context(), w)
 		return
 	}

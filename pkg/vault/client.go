@@ -14,6 +14,7 @@ package vault
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -37,7 +38,7 @@ type Configuration struct {
 	AdminPwd         string
 }
 
-// Config is the global config struct
+// Configs the global config struct
 var Config Configuration
 
 type Vault struct {
@@ -106,6 +107,37 @@ func (v *Vault) ReadSecretIntoStruct(path string, data interface{}) *model.RksEr
 	return nil
 }
 
+func (v *Vault) ReadSecretIntoStructWithCas(path string, data interface{}) (int, *model.RksError) {
+	vaultSecret, rksErr := v.ReadSecret(path)
+	if rksErr != nil {
+		return 0, rksErr
+	}
+	if vaultSecret == nil {
+		return 0, &model.RksError{WrappedError: nil, Message: "vault secret not found", Code: 404}
+	}
+
+	if err := mapstructure.Decode(vaultSecret.Data["data"], data); err != nil {
+		return 0, &model.RksError{WrappedError: err, Message: "failed to decode data from Vault in given struct", Code: 500}
+	}
+
+	metadata, ok := vaultSecret.Data["metadata"].(map[string]interface{})
+	if !ok {
+		return 0, &model.RksError{WrappedError: nil, Message: "failed to decode metadata from Vault ", Code: 500}
+
+	}
+	versionjson, ok := metadata["version"].(json.Number)
+	if !ok {
+		return 0, &model.RksError{WrappedError: nil, Message: "failed to decode versionjson from metadata from Vault ", Code: 500}
+
+	}
+	version, err := versionjson.Int64()
+	if err != nil {
+		return 0, &model.RksError{WrappedError: nil, Message: "failed to decode version from metadata from Vault ", Code: 500}
+
+	}
+	return int(version), nil
+}
+
 func (v *Vault) WriteStruct(path string, data interface{}) *model.RksError {
 	vaultData := make(map[string]interface{})
 
@@ -113,15 +145,34 @@ func (v *Vault) WriteStruct(path string, data interface{}) *model.RksError {
 	if err != nil {
 		return &model.RksError{WrappedError: err, Message: "failed to write data struct in vault map", Code: 500}
 	}
-
 	_, err = v.Logical().Write(path, map[string]interface{}{"data": vaultData})
 	if err != nil {
+		return RKSErrFromVaultErr(err, "write struct")
+	}
+	return nil
+}
+
+func (v *Vault) WriteStructWithCas(path string, data interface{}, version int) *model.RksError {
+	vaultData := make(map[string]interface{})
+
+	err := mapstructure.Decode(data, &vaultData)
+	if err != nil {
+		return &model.RksError{WrappedError: err, Message: "failed to write data struct in vault map", Code: 500}
+	}
+	options := map[string]interface{}{
+		"cas": version,
+	}
+	_, err = v.Logical().Write(path, map[string]interface{}{"data": vaultData, "options": options})
+	if err != nil {
+		if vaultErr, ok := err.(*vaultAPI.ResponseError); ok && vaultErr.StatusCode == 400 {
+			return &model.RksError{WrappedError: err, Message: "Error while writing group secret list with cas, ressource may be locked, please retry later", Code: 423}
+
+		}
 		return RKSErrFromVaultErr(err, "write struct")
 	}
 
 	return nil
 }
-
 func (v *Vault) KeyExists(path string) (bool, *model.RksError) {
 	vaultSecret, rksErr := v.ReadSecret(path)
 	if rksErr != nil {
@@ -204,26 +255,27 @@ func (v *Vault) GetGroupList() ([]string, *model.RksError) {
 	return groupnameList, nil
 }
 
-func (v *Vault) GetGroupSecretList(group string) (*model.GroupSecrets, *model.RksError) {
+func (v *Vault) GetGroupSecretList(group string) (*model.GroupSecrets, int, *model.RksError) {
 	groupSecrets := model.GroupSecrets{
 		Secrets: []string{},
 	}
 
+	version := 0
 	keyExists, err := v.KeyExists("rks/data/groups/" + group + "/secret-list")
 	if err != nil {
-		return nil, err
+		return nil, version, err
 	}
 	if keyExists {
-		if err := v.ReadSecretIntoStruct("rks/data/groups/"+group+"/secret-list", &groupSecrets); err != nil {
-			return nil, err
+		version, err = v.ReadSecretIntoStructWithCas("rks/data/groups/"+group+"/secret-list", &groupSecrets)
+		if err != nil {
+			return nil, version, err
 		}
 	}
-
-	return &groupSecrets, nil
+	return &groupSecrets, version, nil
 }
 
-func (v *Vault) WriteGroupSecretList(group string, groupSecrets *model.GroupSecrets) *model.RksError {
-	if rksErr := v.WriteStruct("rks/data/groups/"+group+"/secret-list", groupSecrets); rksErr != nil {
+func (v *Vault) WriteGroupSecretList(group string, groupSecrets *model.GroupSecrets, version int) *model.RksError {
+	if rksErr := v.WriteStructWithCas("rks/data/groups/"+group+"/secret-list", groupSecrets, version); rksErr != nil {
 		return rksErr
 	}
 	return nil
@@ -248,7 +300,7 @@ func (v *Vault) GetSecretGroupList(fqdn string) ([]string, *model.RksError) {
 	groupResList := []string{}
 
 	for _, groupname := range groupnameList {
-		groupSecrets, err := v.GetGroupSecretList(groupname)
+		groupSecrets, _, err := v.GetGroupSecretList(groupname)
 		if err != nil {
 			return nil, err
 		}

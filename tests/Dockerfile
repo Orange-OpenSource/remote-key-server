@@ -10,7 +10,7 @@ COPY ./tests/test-requirements.txt  ./
 COPY ./tests/testdata/ ./testdata/
 COPY ./certs certs/
 
-RUN tox --notest -e ALL
+RUN tox --notest -e dockertest
 
 COPY ./tests/test/ test/
 
