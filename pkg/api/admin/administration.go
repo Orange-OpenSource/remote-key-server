@@ -424,6 +424,7 @@ func AssociateSecret(w http.ResponseWriter, r *http.Request) {
 
 	if rksErr != nil {
 		rksErr.HandleErr(r.Context(), w)
+		return
 	}
 
 	policy, err := utils.UpdateTemplatedPolicy(vault.GroupSecretAccessPolicy, groupSecrets.Secrets)
@@ -490,6 +491,7 @@ func DissociateSecret(w http.ResponseWriter, r *http.Request) {
 
 	if rksErr != nil {
 		rksErr.HandleErr(r.Context(), w)
+		return
 	}
 
 	policy, err := utils.UpdateTemplatedPolicy(vault.GroupSecretAccessPolicy, groupSecrets.Secrets)
