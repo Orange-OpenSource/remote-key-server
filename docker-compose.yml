@@ -40,7 +40,7 @@ services:
       - "rks-consul"
       - "rks-vault"
       - "rks-server"
-    command: wait-for rks-vault:8200 -- demo_init.sh
+    command: wait-for rks-vault:8200 -- /bin/demo_init.sh
     volumes:
       - ./demo/:/demo/
     networks:

@@ -1,6 +1,6 @@
-#!/bin/ash
+#!/bin/sh
 
-set -eo pipefail
+set -e
 
 sleep 5
 
@@ -23,16 +23,18 @@ echo [DEMO INIT][RKS] initialized
 GROUP_TOKEN=$(curl -s -k https://$RKS_HOST:8080/rks/v1/group/test -H "X-Vault-Token: $ADMIN_TOKEN"  -d '{"callbackURL": "", "oauthURL": "", "oauthClientID": "", "oauthClientSecret": ""}' -H "Content-Type: application/json" | jq -r .groupToken)
 echo [DEMO INIT][RKS] test group created
 
-curl -s -k https://$RKS_HOST:8080/rks/v1/secret/test.com \
+curl -s -k https://$RKS_HOST:8080/rks/v1/secret/test.certificate.com \
   -X POST -H "X-Vault-Token: $ADMIN_TOKEN" -H "Content-Type: application/json" \
-  -d "{\"data\": {\"certificate\": \"$(awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' ./certs/rks.local.pem)\", \
-  \"private_key\": \"$(awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' ./certs/rks.local.key)\", \
+  -d "{\"data\": {\"certificate\": \"$(awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' ./certs/test.certificate.com.pem)\", \
+  \"private_key\": \"$(awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' ./certs/test.certificate.com.key)\", \
   \"meta\": {\"ttl\": 10}} \
 }"
-echo [DEMO INIT][RKS] test.com secret created
 
-curl -s -k https://$RKS_HOST:8080/rks/v1/group/test/secrets/test.com -H "X-Vault-Token: $ADMIN_TOKEN" -X POST
-echo [DEMO INIT][RKS] test.com secret added to test group
+echo [DEMO INIT][RKS] test.certificate.com secret created
+
+curl -s -k https://$RKS_HOST:8080/rks/v1/group/test/secrets/test.certificate.com -H "X-Vault-Token: $ADMIN_TOKEN" -X POST
+
+echo [DEMO INIT][RKS] test.certificate.com secret added to test group
 
 echo "$GROUP_TOKEN" > /demo/group_token
 echo [DEMO INIT] group_token written inside ./demo/group_token
