@@ -15,6 +15,7 @@ import (
 )
 
 var (
+	rksHostPort    string
 	groupToken     string
 	groupTokenFile string
 	nodeID         string
@@ -23,8 +24,7 @@ var (
 )
 
 var (
-	rksBaseURL = "https://rks-server:8080"
-	tr         = &http.Transport{
+	tr = &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // required in case the remote-key-server has a self signed certificate (Dev Env)
 	}
 	rksClient = &http.Client{Transport: tr}
@@ -57,7 +57,7 @@ type SecretDataMeta struct {
 
 // registerNode uses the register node endpoint on the RKS to get a node token
 func registerNode() {
-	req, err := http.NewRequest("POST", rksBaseURL+"/rks/v1/node", nil)
+	req, err := http.NewRequest("POST", "https://"+rksHostPort+"/rks/v1/node", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -87,7 +87,7 @@ func registerNode() {
 
 // renewNodeToken uses the renewNodeToken endpoint on the RKS to renew the node token
 func renewNodeToken() error {
-	req, err := http.NewRequest("POST", rksBaseURL+"/rks/v1/auth/token/renew-self", nil)
+	req, err := http.NewRequest("POST", "https://"+rksHostPort+"/rks/v1/auth/token/renew-self", nil)
 	if err != nil {
 		return err
 	}
@@ -186,7 +186,7 @@ func fetchRKSSecret(sni string) (*tls.Certificate, error) {
 		log.Println("secret not found in cache, fetch from RKS")
 	}
 
-	r, err := http.NewRequest("GET", rksBaseURL+"/rks/v1/secret/"+sni, nil)
+	r, err := http.NewRequest("GET", "https://"+rksHostPort+"/rks/v1/secret/"+sni, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -242,6 +242,7 @@ func MyHandler(w http.ResponseWriter, req *http.Request) {
 // start the client-node like this ./client-node <group_token> <node_id>
 // Example: ./client-node s.JrZbFwDsd8Z5CESkF9f90uVV 1
 func main() {
+	flag.StringVar(&rksHostPort, "rks-host-port", "rks-server:8080", "rks host port")
 	flag.StringVar(&groupToken, "group-token", "", "group token for this node")
 	flag.StringVar(&groupTokenFile, "group-token-file", "", "file containing group token for this node")
 	flag.StringVar(&nodeID, "node-id", "1", "unique nodeID")
@@ -286,7 +287,7 @@ func main() {
 	s.TLSConfig.GetCertificate = GetCertificateCallback
 	s.Handler = http.HandlerFunc(MyHandler)
 	// We need to load fake certificate / private key to start the TLS server
-	if err := s.ListenAndServeTLS("./fake.com.crt", "./fake.com.key"); err != nil {
+	if err := s.ListenAndServeTLS("/ssl/fake.com.crt", "/ssl/fake.com.key"); err != nil {
 		log.Fatal(err)
 	}
 }
