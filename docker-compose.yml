@@ -48,7 +48,7 @@ services:
       - rks-external
   client-node-1:
     build:
-      context: ./client-node
+      context: ./client-nodes/go/
     command: --group-token-file ./demo/group_token --node-id 1
     ports:
       - "8443:8443"
@@ -60,7 +60,7 @@ services:
     restart: on-failure
   client-node-2:
     build:
-      context: ./client-node
+      context: ./client-nodes/go/
     command: --group-token-file ./demo/group_token --node-id 2
     ports:
       - "8444:8443"
