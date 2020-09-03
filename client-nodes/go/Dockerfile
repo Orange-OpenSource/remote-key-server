@@ -25,8 +25,7 @@ RUN addgroup -g 1000 -S rks && \
 USER rks
 
 COPY --from=build /rks/bin/rks-client-node /usr/bin/rks-client-node
-COPY ./fake.com.crt ./fake.com.crt
-COPY ./fake.com.key ./fake.com.key
+COPY ./ssl /ssl
 
 EXPOSE 443/tcp
 ENTRYPOINT ["rks-client-node"]
