@@ -16,7 +16,7 @@ info:
       * add crisis management solution to cut access to the RKS to specific nodes or an entire CDN in case of emergency
 
     The RKS is based on the Hashicorp Vault Open Source Software (https://github.com/hashicorp/vault) and provides an API on top of Vault's
-  version: 0.9.0
+  version: 1.0.0
 tags:
   - name: RKS Initialization
     description: "RKS init API"

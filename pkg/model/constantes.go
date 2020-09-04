@@ -12,4 +12,4 @@ Author: Glenn Feunteun, Celine Nicolas
 */
 package model
 
-const RKSVersion = "v0.9.1"
+const RKSVersion = "v1.0.0"
