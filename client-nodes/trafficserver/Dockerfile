@@ -1,11 +1,14 @@
 FROM debian:10
 
 COPY ./src /rks-plugin/src/
-COPY ./include /rks-plugin/include/
 
-RUN apt-get update && apt-get install -y trafficserver trafficserver-dev libcurl4-openssl-dev build-essential libssl-dev libbrotli-dev && \
-      cd rks-plugin && tsxs -lcurl -o /usr/lib/trafficserver/modules/rks.so -I./include src/rks.cc && \
-      apt-get purge --auto-remove -y build-essential trafficserver-dev
+RUN apt-get update && apt-get install -y trafficserver trafficserver-dev curl libcurl4-openssl-dev build-essential libssl-dev libbrotli-dev && \
+      mkdir -p /rks-plugin/include/nlohmann && \
+      cd /rks-plugin/include/nlohmann && \
+      curl -Lo ./json.hpp https://github.com/nlohmann/json/releases/download/v3.9.1/json.hpp && \
+      cd /rks-plugin && \
+      tsxs -lcurl -o /usr/lib/trafficserver/modules/rks.so -I./include src/rks.cc && \
+      apt-get purge --auto-remove -y curl build-essential trafficserver-dev
 
 RUN mkdir -p /var/run/trafficserver && chown trafficserver /var/run/trafficserver
 
