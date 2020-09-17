@@ -27,8 +27,8 @@ You could get our latest rks-aio docker image on the github package registry ([s
 docker pull docker.pkg.github.com/orange-opensource/remote-key-server/rks-aio:latest
 docker run --volume $PWD/certs/:/data --add-host rks.local:127.0.0.1 --name rks-aio --publish 8080:8080 --interactive --tty --detach rks-aio
 ```
-Docker rks-aio image contains a vault server in developement mode(RAM storage and not secure), and a rks-server. 
-It is useful to start and see functionnalities of rks.
+Docker rks-aio image contains a vault server in development mode(RAM storage and not secure), and a rks-server. 
+It is useful to start and see functionalities of rks.
 
 The vault root token needed for the RKS initialization in this case (rks-aio image) is simply "root".
 
