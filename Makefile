@@ -92,6 +92,11 @@ tests/rksclient: rks-openapi.yaml
 	@echo Remove empty generated client tests
 	-rm -rf tests/rksclient/test
 
+.PHONY: build-aio
+build-aio: #Generate Docker rks-aio image (rks with vault in dev mode)
+	docker build -f Dockerfile-aio --build-arg=http_proxy=${http_proxy} --build-arg=https_proxy=${http_proxy} ./ --tag rks-aio
+
+
 .PHONY: help
 help: ## Print self generated help using Makefile comments
 	@echo
