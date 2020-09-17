@@ -20,19 +20,32 @@ That way we can simplify its usage while hiding Vault intricacies like backend s
 The API revolves around *Nodes* which need access to certain certificates/keys and *Group* of Nodes which represent logical grouping of nodes with same access to secrets
 
 ## Getting started
-We provide a Make target to spin up a development environment consisting of a Remote Key Server, Hashicorp Vault and Hashicorp Consul instances running in Docker
+### With docker image
+You could get our latest rks-aio docker image on the github package registry ([see how to configure docker for use with github package](https://docs.github.com/en/packages/using-github-packages-with-your-projects-ecosystem/configuring-docker-for-use-with-github-packages))
 
-You will need Make, Docker, jq and curl installed to run the development environment
-
-You can start the environment with:
 ```bash
-make dev-env # Optionally add "-j4" flag to run targets in parallel
+docker pull docker.pkg.github.com/orange-opensource/remote-key-server/rks-aio:latest
+docker run --volume $PWD/certs/:/data --add-host rks.local:127.0.0.1 --name rks-aio --publish 8080:8080 --interactive --tty --detach rks-aio
+```
+Docker rks-aio image contains a vault server in developement mode(RAM storage and not secure), and a rks-server. 
+It is useful to start and see functionnalities of rks.
+
+The vault root token needed for the RKS initialization in this case (rks-aio image) is simply "root".
+
+### By cloning repository 
+Another way to get started is to clone repo and simply launch:
+
+```bash
+make dev-env
 ```
 The vault root token needed for the RKS initialization is printed in the **root\_token** file
 
+
+### In both cases
+
 The RKS is started with the following default administration credentials:
 
-| User | Password |
+| User | Password |`
 | ------ | ------ |
 | admin-rks | 12345 |
 
@@ -53,6 +66,7 @@ make run-openapi-webui
 ```
 
 The following commands show the main functionalities of the RKS API
+
 ```bash
 # Initialize the RKS using vault root token
 $ curl -k -X POST https://localhost:8080/rks/v1/init -H "X-Vault-Token: $(cat root_token)"

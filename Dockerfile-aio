@@ -1,0 +1,52 @@
+
+###########################################################################
+# Get vault
+###########################################################################
+FROM alpine:3.9 AS get-vault
+
+RUN apk add --no-cache curl unzip
+
+WORKDIR /rks/
+RUN curl -o vault.zip https://releases.hashicorp.com/vault/1.3.1/vault_1.3.1_linux_amd64.zip && unzip vault.zip && rm vault.zip
+###########################################################################
+# Build rks-server Go binary from github repo
+###########################################################################
+FROM golang:1.13.6-alpine AS build-go
+
+RUN apk add --no-cache git
+WORKDIR /remote-key-server
+COPY go.mod ./go.mod
+COPY go.sum ./go.sum
+# Install dependencies before copying code and benefit from docker caching
+RUN go mod download
+
+COPY ./cmd ./cmd
+COPY ./pkg ./pkg
+
+ENV CGO_ENABLED=0
+RUN go build -o /bin/rks ./cmd/remote-key-server/
+
+
+###########################################################################
+#Build dev imagea with vault (dev) and rks
+###########################################################################
+FROM python:3.7-alpine3.9 AS runtime
+
+RUN apk add --no-cache curl
+RUN adduser -D -g '' rks
+
+RUN pip3 install supervisor
+
+WORKDIR /home/rks
+COPY ./certs/rks_CA.pem /certs/rks_CA.pem
+COPY ./certs/rks.local.pem /certs/cert.pem
+COPY ./certs/rks.local.key /certs/private.key
+
+COPY --from=build-go /bin/rks /usr/bin/rks-server
+COPY supervisord.conf /etc/supervisor/conf.d/
+COPY --from=get-vault /rks/vault /usr/bin/vault
+
+EXPOSE 8080
+EXPOSE 8200
+
+CMD ["supervisord", "--nodaemon", "--configuration", "/etc/supervisor/conf.d/supervisord.conf"]
