@@ -1,4 +1,4 @@
-name: Publish RKS docker image
+name: Publish RKS AIO docker image
 
 on:
   push:
