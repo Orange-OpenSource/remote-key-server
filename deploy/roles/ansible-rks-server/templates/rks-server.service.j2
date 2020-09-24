@@ -1,0 +1,16 @@
+[Unit]
+Description=RKS Server
+Requires=network-online.target consul.service vault.service
+After=network-online.target consul.service vault.service
+
+[Service]
+ExecStart=/usr/bin/rks-server --adminLogin {{ rks_admin_login }} --adminPwd {{ rks_admin_pwd }} --listenAddress "{{ rks_listen_address }}" --cert {{ rks_config_path }}/{{ rks_cert_name }} --pkey {{ rks_config_path }}/{{ rks_pkey_name }} --vaultaddr {{ rks_vault_address }}
+KillMode=process
+KillSignal=SIGTERM
+Restart=on-failure
+LimitNOFILE=50000:50000
+LimitNPROC=500000
+
+
+[Install]
+WantedBy=multi-user.target

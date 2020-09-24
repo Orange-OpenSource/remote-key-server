@@ -1,0 +1,24 @@
+---
+
+- hosts: consul_instances
+  tasks:
+    - name: test
+      debug:
+        msg: "Hello"
+
+- hosts: consul_instances
+  environment:
+    #we could take proxy from env vars
+    http_proxy: http://http-proxy.rd.francetelecom.fr:8080
+    https_proxy: http://http-proxy.rd.francetelecom.fr:8080
+    no_proxy: "localhost,127.0.0.1,{{ groups['consul_instances'] | \
+               map('extract', hostvars, ['ansible_host']) | join(',') }}"
+    CONSUL_CONFIGURE_SYSLOGD: true
+
+  #we could define vars in vars.yml
+  vars_files:
+    - ./vars/vars.yml
+  roles:
+    - ansible-consul
+    - ansible-vault
+    - ansible-rks-server
