@@ -2,8 +2,7 @@
 # Remote Key Server (RKS)
 > Centralized key server for management and distribution of TLS certificates and private keys to edge servers
 
-##Table of content
-
+## Table of content
   - [What is the Remote Key Server](#what-is-the-remote-key-server)  
   - [Getting started](#getting-started)  
   - [Usage](#usage)  
