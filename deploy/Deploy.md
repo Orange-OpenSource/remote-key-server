@@ -64,7 +64,7 @@ Vault and Consul can be configured to run in cluster mode, that is, running seve
 For more information about a cluster installation (see [Vault documentation](https://learn.hashicorp.com/vault/getting-started/deploy)), you will need to call init on one vault node, then unseal each vault node.
 
 
-##Start scenario
+## Start scenario
 
 please see [rks-handguide](../docs/rks-handguide.md)
 
