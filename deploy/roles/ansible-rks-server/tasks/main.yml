@@ -1,0 +1,33 @@
+---
+
+- name: Copy systemd unit
+  template:
+    src: rks-server.service.j2
+    dest: /lib/systemd/system/rks-server.service
+
+- name: Create rks config directory
+  file:
+    path: "{{ rks_config_path }}"
+    state: directory
+
+- name: Copy rks-server binary
+  copy:
+    src: rks-server
+    dest: /usr/bin/rks-server
+    mode: u+x
+
+- name: Copy cert and key
+  copy:
+    src: "{{ item }}"
+    dest: "{{ rks_config_path }}/{{ item }}"
+    mode: u+x
+  loop:
+    - "{{rks_cert_name}}"
+    - "{{rks_pkey_name}}"
+
+- name: Start RKS server
+  systemd:
+    name: rks-server.service
+    daemon_reload: true
+    enabled: true
+    state: restarted

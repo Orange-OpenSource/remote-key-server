@@ -1,0 +1,16 @@
+consul_syslog_enable: true
+consul_version: 1.6.1
+vault_version: 1.3.1
+vault_backend: consul
+vault_iface: ens192
+#may be deleted
+vault_awskms: false
+vault_log_level: debug
+rks_admin_login: admin
+rks_admin_pwd: 12345
+rks_listen_address: ":443"
+rks_config_path: /etc/rks/
+rks_cert_name: rks.local.pem
+rks_pkey_name: rks.local.key
+rks_vault_address: http://{{ ansible_default_ipv4.address }}:8200
+
