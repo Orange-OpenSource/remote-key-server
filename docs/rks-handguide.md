@@ -119,7 +119,7 @@ Notes:
 With this *node_token*, we are now able to **get secret** *cert8*:
 
 ```bash
-curl -k "https://<rks_hostname:port>/rks/v1/secrets/cert8" -H "X-Vault-Token: <node_token>"
+curl -k "https://<rks_hostname:port>/rks/v1/secret/cert8" -H "X-Vault-Token: <node_token>"
 
 {"data":{"meta":{"ttl":10},"certificate":"-----BEGIN CERTIFICATE-----\n[...]-----END CERTIFICATE-----\n","private_key":"-----BEGIN PRIVATE KEY-----[...]-----END PRIVATE KEY-----\n"}}
 ```
