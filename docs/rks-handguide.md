@@ -10,7 +10,7 @@ Please see [Deployment guide](../deploy/Deploy.md)
 When calling the dev-env Makefile target, this previous steps are done automatically.
 
 ```bash
-make dev-env
+$make dev-env
 ```
 The dev environment run all components(Consul,Vault,rks-server) in docker containers and set up deployed components.
 
@@ -18,12 +18,16 @@ The dev environment run all components(Consul,Vault,rks-server) in docker contai
 
 Once Consul and Vault are installed, initialized and unsealed(set up), you need to call the **RKS Initialization API** endpoint, to **configure vault for RKS use and create an RKS admin user**:
 
-In the example below, you have to replace **rks_hostname:port** with the right values.  
 If you used 'make dev-env' to deploy, you may use 'rks-server:8080'.  
 
+Please export rks_hostname and port to get further commands work:
 
 ```bash
-curl -k -X POST -H "X-Vault-Token: <root_token>" https://<rks_hostname:port>/rks/v1/init
+export RKS_HOST=<rks_hostname>:<rks_port>
+```
+
+```bash
+curl -k -X POST -H "X-Vault-Token: $ROOT_TOKEN" https://$RKS_HOST/rks/v1/init
 ```
 
 Notes:
@@ -42,9 +46,13 @@ If you wonder where to find admin login/password, they have been passed to RKS a
 In our dev env, we use *admin-rks/12345* as login/password :  
 
 ```bash
-curl -k -X POST "https://<rks_hostname:port>/rks/v1/admin/login" -H  "Accept: application/json" -H  "Content-Type: application/json" -d "{\"login\":\"admin-rks\",\"password\":\"12345\"}"  
+curl -k -X POST "https://$RKS_HOST/rks/v1/admin/login" -H  "Accept: application/json" -H  "Content-Type: application/json" -d "{\"login\":\"admin-rks\",\"password\":\"12345\"}"  
 
 {"adminToken": "<admin_token>"}  
+```
+
+```bash
+export $ADMIN_TOKEN=<admin_token>
 ```
 
 **Provide RKS with some secrets**:
@@ -68,12 +76,11 @@ cert10.pem  cert15.key  cert19.pem  cert23.key  cert27.pem  cert31.key  cert35.p
 We provide another shell script to push the generated secrets in the RKS:
 
 ```bash
-./scripts/push_certificates.sh <admin_token>
+./scripts/push_certificates.sh $ADMIN_TOKEN
 ```
 
 Notes:  
 *admin_token* as argument, look at the script to set how the secrets are pushed.  
-You may have to edit script to set RKS_HOST to your rks_hostname:port  
 
 You can now **create a group** for all nodes which will need access to the same set of secrets.  
 
@@ -82,8 +89,12 @@ We create it with an empty *callbackURL* and related information(*oauthURL*,*oau
 This will allow nodes to register without any group manager checking.  
 
 ```bash
-curl -k -X POST "https://<rks_hostname:port>/rks/v1/group/testgroup" -H "X-Vault-Token: <admin_token>" -H  "accept: application/json" -H  "Content-Type: application/json" -d "{\"callbackURL\":\"\",\"oauthURL\":\"\",\"oauthClientID\":\"\",\"oauthClientSecret\":\"\"}"
+curl -k -X POST "https://$RKS_HOST/rks/v1/group/testgroup" -H "X-Vault-Token: $ADMIN_TOKEN" -H  "accept: application/json" -H  "Content-Type: application/json" -d "{\"callbackURL\":\"\",\"oauthURL\":\"\",\"oauthClientID\":\"\",\"oauthClientSecret\":\"\"}"
 {"groupToken":"<group_token>"}
+```
+
+```bash
+export GROUPTOKEN=<group_token>
 ```
 
 The RKS is responsible for renewing the *group_token* automatically.  
@@ -98,7 +109,7 @@ Let's **associate a secret to this group**.
 
 For example, associate the secret named *cert8* to *testgroup*:  
 ```bash
-curl -k -X POST "https://<rks_hostname:port>/rks/v1/group/testgroup/secrets/cert8" -H "X-Vault-Token: <admin_token>" -H  "accept: application/json" -H  "Content-Type: application/json"
+curl -k -X POST "https://$RKS_HOST/rks/v1/group/testgroup/secrets/cert8" -H "X-Vault-Token: $ADMIN_TOKEN" -H  "accept: application/json" -H  "Content-Type: application/json"
 ```
 
 Secret association to a group allows all group registered nodes to access the given secret.  
@@ -106,9 +117,13 @@ Secret association to a group allows all group registered nodes to access the gi
 Let's **register one node to get a node token**, in practice this operation should be initiated by the node itself:  
 
 ```bash
-curl -k -X POST "https://<rks_hostname:port>/rks/v1/node" -H"X-LCDN-nodeId: 1" -H "X-Vault-Token: <group_token>" -H  "accept: application/json" -H  "Content-Type: application/json"
+curl -k -X POST "https://$RKS_HOST/rks/v1/node" -H"X-LCDN-nodeId: 1" -H "X-Vault-Token: $GROUPTOKEN" -H  "accept: application/json" -H  "Content-Type: application/json"
 
 {"nodeToken":"<node_token>","ttl":600}
+```
+
+```bash
+export NODETOKEN=<node_token>
 ```
 
 Notes:  
@@ -119,21 +134,21 @@ Notes:
 With this *node_token*, we are now able to **get secret** *cert8*:
 
 ```bash
-curl -k "https://<rks_hostname:port>/rks/v1/secret/cert8" -H "X-Vault-Token: <node_token>"
+curl -k "https://$RKS_HOST/rks/v1/secret/cert8" -H "X-Vault-Token: $NODETOKEN"
 
 {"data":{"meta":{"ttl":10},"certificate":"-----BEGIN CERTIFICATE-----\n[...]-----END CERTIFICATE-----\n","private_key":"-----BEGIN PRIVATE KEY-----[...]-----END PRIVATE KEY-----\n"}}
 ```
 
 But we can't get *cert9* since it hasn't been associated with *testgroup*:
 ```bash
-curl -k "https://<rks_hostname:port>/rks/v1/secrets/cert9" -H "X-Vault-Token: <node_token>"
+curl -k "https://$RKS_HOST/rks/v1/secret/cert9" -H "X-Vault-Token: $NODETOKEN"
 
 read secret: vault unauthorized
 ```
 
 The node has to **renew its node token** regularly to keep it valid
 ```bash
-curl -k "https://<rks_hostname:port>/rks/v1/auth/token/renew-self -H "X-Vault-Token: <node_token>"
+curl -k "https://$RKS_HOST/rks/v1/auth/token/renew-self -H "X-Vault-Token: $NODETOKEN"
 
 {"nodeToken":"<node_token>","ttl":600}
 ```
