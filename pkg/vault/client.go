@@ -36,6 +36,7 @@ type Configuration struct {
 	VaultInitialized bool
 	AdminLogin       string
 	AdminPwd         string
+	LogLevel         string
 }
 
 // Configs the global config struct

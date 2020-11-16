@@ -44,7 +44,7 @@ start-docker-rks-vault: docker-network clean-docker-rks-vault
 .PHONY: start-rks-server
 start-docker-rks-server: docker-network clean-docker-rks-server
 	docker build --build-arg http_proxy=${http_proxy} --build-arg https_proxy=${https_proxy} -t rks-server:dev .
-	docker run --network=${NETWORK} --name=rks-server -p 8080:8080 -d rks-server:dev --vaultaddr http://rks-vault:8200 --adminLogin admin-rks --adminPwd 12345
+	docker run --network=${NETWORK} --name=rks-server -p 8080:8080 -d rks-server:dev --vaultaddr http://rks-vault:8200 --adminLogin admin-rks --adminPwd 12345 --logLevel Debug
 
 .PHONY: start-rks-mock-callback-server
 start-docker-mock-callback-server: docker-network clean-docker-mock-callback-server

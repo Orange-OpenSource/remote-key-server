@@ -4,7 +4,7 @@ Requires=network-online.target consul.service vault.service
 After=network-online.target consul.service vault.service
 
 [Service]
-ExecStart=/usr/bin/rks-server --adminLogin {{ rks_admin_login }} --adminPwd {{ rks_admin_pwd }} --listenAddress "{{ rks_listen_address }}" --cert {{ rks_config_path }}/{{ rks_cert_name }} --pkey {{ rks_config_path }}/{{ rks_pkey_name }} --vaultaddr {{ rks_vault_address }}
+ExecStart=/usr/bin/rks-server --adminLogin {{ rks_admin_login }} --adminPwd {{ rks_admin_pwd }} --listenAddress "{{ rks_listen_address }}" --cert {{ rks_config_path }}/{{ rks_cert_name }} --pkey {{ rks_config_path }}/{{ rks_pkey_name }} --vaultaddr {{ rks_vault_address }} --logLevel  {{ rks_log_level }} 
 KillMode=process
 KillSignal=SIGTERM
 Restart=on-failure
