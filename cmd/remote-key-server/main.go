@@ -40,17 +40,30 @@ func init() {
 	flag.StringVar(&vault.Config.ListenAddress, "listenAddress", ":8080", "Listen Address of form: {ip}:{port}")
 	flag.StringVar(&vault.Config.AdminLogin, "adminLogin", "", "Admin Login (required)")
 	flag.StringVar(&vault.Config.AdminPwd, "adminPwd", "", "Admin Password (required)")
+	flag.StringVar(&vault.Config.LogLevel, "logLevel", "Info", "log level, default to \"Info\", could be \"Debug\" or \"Error\"")
 }
 
 func main() {
 	var ok bool
 
 	logrus.Info("Server starting")
-	logrus.SetLevel(logrus.DebugLevel)
 
 	flag.Parse()
 
 	config := vault.Config
+
+	switch config.LogLevel {
+
+	case "Info":
+		logrus.SetLevel(logrus.InfoLevel)
+	case "Error":
+		logrus.SetLevel(logrus.ErrorLevel)
+	case "Debug":
+		logrus.SetLevel(logrus.DebugLevel)
+	default:
+		logrus.SetLevel(logrus.InfoLevel)
+	}
+
 	if config.VaultAddr == "" {
 		if config.VaultAddr, ok = os.LookupEnv("VAULT_ADDR"); !ok {
 			flag.Usage()
@@ -73,7 +86,7 @@ func main() {
 
 	// Create global logger which will be derived
 	baseLogger := logrus.New()
-	baseLogger.SetLevel(logrus.DebugLevel)
+	baseLogger.SetLevel(logrus.GetLevel())
 	logger.SetBaseLogger(baseLogger)
 
 	loggingMiddleware := logger.LoggingMiddleware{}
